@@ -1,0 +1,28 @@
+{
+  "api": {
+    "url": "https://127.0.0.1:27124",
+    "ca_file": "C:/Users/<ユーザー名>/.config/opencode/skills/obsidian-run/obsidian-local-rest-api.crt",
+    "key_env": "OBSIDIAN_API_KEY"
+  },
+  "vault": "C:/Users/<ユーザー名>/Documents/MyVault",
+  "commands": {
+    "pandoc-html": {
+      "id": "obsidian-pandoc:pandoc-export-html",
+      "description": "Pandoc プラグイン: 開いているノートを HTML で書き出す (ノートと同じフォルダに出る)。ID は run.bat commands --grep 語 で探す",
+      "watch": [
+        "01_data"
+      ],
+      "settle_sec": 2,
+      "wait_sec": 15
+    },
+    "export-html-human": {
+      "id": "custom:export-html-human",
+      "description": "自作のコマンド: 開いているノートを、印刷用スタイルつきの人間用 HTML にして temp/<ノート名>.html に保存する (Vault のスクリプトに、このコマンドを足してあるときだけ)",
+      "watch": [
+        "temp"
+      ],
+      "settle_sec": 3,
+      "wait_sec": 30
+    }
+  }
+}
