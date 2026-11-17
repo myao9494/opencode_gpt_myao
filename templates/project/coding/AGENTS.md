@@ -71,7 +71,7 @@
 
 - Python は使える。`pip install` でパッケージを追加できる。標準ライブラリで足りるなら、標準ライブラリを使う。`pip install` は、`requirements` にあるか、ユーザーが名前を指定したパッケージだけを、バージョンを指定して入れる。追加したパッケージは、`requirements.in` などに記録する。
 - Python は、プロジェクト直下の `.venv/` を使う。なければ `python -m venv .venv` で作る。実行は `.venv\Scripts\python`(Windows)、`.venv/bin/python`(Mac)の形で指定する。`pip install` も、venv の中に入れる。本体の Python には入れない。`.venv/` は `.gitignore` に入れる。
-- Node.js のパッケージは、`npm install`(プロジェクトが pnpm・yarn・bun を使っているなら、それ)で、プロジェクトの中に入れる。グローバルには入れない。構文チェックは `node --check`、テストは `node --test` か、プロジェクトのテストのコマンド。
+- Node.js のパッケージ(`npm install` など)は、会社の決まりで入れられない。構文チェックは `node --check`、テストは `node --test` か、プロジェクトのテストのコマンド。
 - フロントエンドのビルドや、`node_modules` が必要なテストも、その場で実行して確かめる。
 - 実行できなかったテストやビルドは、報告に「実行できなかった」と書く。
 

@@ -38,6 +38,7 @@ SKIP_DIRS = {"node_modules"}  # ドットで始まるフォルダー (.obsidian�
 # 関連ノート・タグの検索から外す、Vault 直下のフォルダー (テンプレート、自動生成、ビルド用、図・CAD など。ノートではない)
 NON_NOTE_DIRS = {"00_templates", "03_Dataview", "04_pptx", "11_common_prompt", "70_gantt_csv", "80_script", "90_batch",
                  "Excalidraw", "Analysis", "Parts", "Media"}
+KNOWLEDGE_DIR = "99_knowledge"  # ユーザーに聞いて得た知識を、1 話題 1 ノートで置く Vault 直下のフォルダー
 MAX_SCAN_BYTES = 300_000
 RELATED_POINTS = {"名前": 3, "タグ": 2, "本文": 1}  # related の点数 (語ごとに、名前・タグ・本文のどこに含まれるか)
 
@@ -147,9 +148,12 @@ def ai_note_status(path: Path, vault: Path) -> str | None:
     generated = re.search(r"(?m)^ai_generated:[ \t]*\S", front) is not None
     reviewed = re.search(r"(?mi)^ai_reviewed:[ \t]*(true|yes)[ \t\r]*$", front) is not None
     try:
-        in_summary = path.resolve().relative_to(vault.resolve()).parts[:1] == ("10_summary",)
+        top = path.resolve().relative_to(vault.resolve()).parts[:1]
     except ValueError:
-        in_summary = False
+        top = ()
+    if top == (KNOWLEDGE_DIR,):
+        return None
+    in_summary = top == ("10_summary",)
     if not (generated or in_summary):
         return None
     return "reviewed" if reviewed else "unreviewed"

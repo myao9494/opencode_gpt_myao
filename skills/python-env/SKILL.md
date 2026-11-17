@@ -6,7 +6,7 @@ description: Python のスクリプトを実行する、パッケージを追加
 ## 前提
 
 - 会社の PC では、Python が使え、`pip install` も使える。接続先は PyPI に直接(ミラーではない)。
-- インターネットを使える。Node.js のパッケージ(`npm install`・`npx`)も使える(このスキルは、Python の手順だけを扱う)。
+- インターネット検索は使えない。Node.js のパッケージ(`npm install`・`npx`)など、`pip` 以外のパッケージの導入は、会社の決まりで禁止(このスキルは、Python の手順だけを扱う)。
 
 ## 仮想環境(`.venv`)
 

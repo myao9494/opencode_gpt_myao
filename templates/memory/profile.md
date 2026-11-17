@@ -7,7 +7,7 @@
 
 - PC は Windows 11(64bit)。シェルは PowerShell。パスは `C:\Users\…` の形で、区切りは `\`。
 - コマンドは PowerShell の書き方で示す(`ls -la`・`rm -rf`・`/tmp` のような Mac・Linux の書き方は使わない)。
-- インターネットを使える。Python はプロジェクトごとの `.venv\Scripts\python` を使う。
+- インターネット検索は使えず、`pip` 以外のパッケージ(`npm` など)は入れられない。Python はプロジェクトごとの `.venv\Scripts\python` を使う。
 
 ## 立場
 

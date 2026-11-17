@@ -501,6 +501,14 @@ class RelatedTests(AdviceBase):
         self.assertIn("同名のノートが 2 個ある", out)
         self.assertNotIn("[[同名]]", out)
 
+    def test_99_knowledge_のノートは_AIが書いても未レビュー扱いにしない(self) -> None:
+        knowledge = self.vault / "99_knowledge"
+        knowledge.mkdir()
+        (knowledge / "社内用語_ABC.md").write_text("---\nai_generated: opencode\nai_reviewed: false\ntags:\n  - 用語\n---\nABC は経費精算の略である\n", encoding="utf-8")
+        _, out, _ = self.run_cli("related", "経費精算")
+        self.assertIn("[[社内用語_ABC]]", out)
+        self.assertNotIn("※ AI の未レビューのまとめ", out)
+
     def test_件数を絞る_見つからないときは推測しない(self) -> None:
         _, out, _ = self.run_cli("related", "銘柄分析", "--limit", "1")
         self.assertIn("(上位 1 個)", out)
