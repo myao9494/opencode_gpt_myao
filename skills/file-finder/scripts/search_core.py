@@ -214,7 +214,8 @@ def ai_note_status(path: str) -> str | None:
     """Obsidian のノートが AI のまとめかを、frontmatter で見る (読み取りだけ。先頭 4 KB)。
     'unreviewed' (ai_generated があり、ai_reviewed が true でない) / 'reviewed' (ai_reviewed: true) / None (人のノート)。
     'edited' は、人のノートを AI が直して、まだレビューされていないもの (ai_edited。根拠には使ってよい)。
-    10_summary/ (Vault の決まりで AI の要約の置き場) は、印が無くても AI のまとめとして扱う。"""
+    10_summary/ (Vault の決まりで AI の要約の置き場) は、印が無くても AI のまとめとして扱う。
+    99_knowledge/ (ユーザーに聞いて教えてもらった知識) は、AI が書いた印があっても人の知識として扱う (vault-notes と同じ)。"""
     if not path.lower().endswith(".md"):
         return None
     try:
@@ -228,7 +229,10 @@ def ai_note_status(path: str) -> str | None:
         front = head[3:end] if end != -1 else ""
     generated = re.search(r"(?m)^ai_generated:[ \t]*\S", front) is not None
     reviewed = re.search(r"(?mi)^ai_reviewed:[ \t]*(true|yes)[ \t\r]*$", front) is not None
-    in_summary = "/10_summary/" in "/" + path.replace("\\", "/").lstrip("/")
+    slashed = "/" + path.replace("\\", "/").lstrip("/")
+    if "/99_knowledge/" in slashed:
+        return None  # 中身はユーザーの言葉だけなので、根拠にしてよい (共通 AGENTS.md)
+    in_summary = "/10_summary/" in slashed
     if not (generated or in_summary):
         if re.search(r"(?m)^ai_edited:[ \t]*\S", front) and not reviewed:
             return "edited"  # 人のノートを AI が直した (未レビュー)。根拠には使ってよい

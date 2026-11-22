@@ -9,7 +9,6 @@ Outlook を毎回読み直すと遅いので、メールの見出しと本文を
 from __future__ import annotations
 
 import hashlib
-import os
 import re
 import sqlite3
 import time
@@ -49,13 +48,7 @@ _REPLY_PREFIX = re.compile(r"^\s*((re|fw|fwd|返信|転送)\s*[:：]\s*|\[[^\]]{
 
 
 def cache_db_path() -> Path:
-    """キャッシュの場所。メールの本文が入るので、リポジトリや作業フォルダの外 (利用者のフォルダ) に置く。"""
-    override = os.environ.get("OPENCODE_OUTLOOK_MAILCACHE")
-    if override:
-        return Path(override)
-    base = os.environ.get("LOCALAPPDATA")
-    root = Path(base) if base else Path.home() / ".cache"
-    return root / "opencode-harness" / "outlook-mail-cache.sqlite3"
+    return oc.mailcache_path()
 
 
 def norm(text: str) -> str:
@@ -173,6 +166,24 @@ class CacheStore:
         self.db.executemany("DELETE FROM mails WHERE entry_id = ?", [(g,) for g in gone])
         return len(gone)
 
+    def prune_unseen(self, since: str, all_seen: set[str], scanned_paths: set[str]) -> int:
+        """全体の取り直しで、移動で場所だけ書き換えた行 (folder_id が空) のうち、移動先のフォルダを
+        見直したのに無かったもの (移動後に削除されたものなど) を除く。
+
+        移動先が取り込みの対象の外 (メールボックス直下のフォルダなど) の行は、確かめられないので残す。
+        """
+        rows = self.db.execute("SELECT entry_id, folder FROM mails WHERE folder_id = '' AND time >= ?", (since,)).fetchall()
+        gone = [r["entry_id"] for r in rows if r["entry_id"] not in all_seen and r["folder"] in scanned_paths]
+        self.db.executemany("DELETE FROM mails WHERE entry_id = ?", [(g,) for g in gone])
+        return len(gone)
+
+    def touch_location(self, entry_id: str, folder_id: str, folder: str) -> None:
+        """既知のメールでも、移動後などで folder_id や場所が変わっていれば合わせる。"""
+        self.db.execute(
+            "UPDATE mails SET folder_id = ?, folder = ? WHERE entry_id = ? AND (folder_id <> ? OR folder <> ?)",
+            (folder_id, folder, entry_id, folder_id, folder),
+        )
+
     def prune_missing_folders(self, alive: set[str]) -> int:
         """無くなったフォルダの分を除く (移動で場所だけ書き換えた行は folder_id が空なので、残す)。"""
         removed = 0
@@ -196,6 +207,9 @@ class CacheStore:
         ref = ref.strip()
         row = self.db.execute("SELECT * FROM mails WHERE alias = ? ORDER BY time DESC", (ref,)).fetchone()
         return row or self.db.execute("SELECT * FROM mails WHERE entry_id = ?", (ref,)).fetchone()
+
+    def alias_count(self, alias: str) -> int:
+        return int(self.db.execute("SELECT COUNT(*) FROM mails WHERE alias = ?", (alias,)).fetchone()[0])
 
     def search(
         self,
@@ -284,6 +298,8 @@ def sync(
     added = {"inbox": 0, "sent": 0}
     removed = errors = 0
     timed_out = False
+    all_seen: set[str] = set()
+    scanned_paths: set[str] = set()
     folders = client.mail_folders()
     for kind, folder in folders:
         folder_id = str(getattr(folder, "EntryID", "") or "")
@@ -313,6 +329,7 @@ def sync(
                 continue
             seen.add(entry_id)
             if entry_id in known:
+                store.touch_location(entry_id, folder_id, path)
                 continue
             try:
                 store.add_mail(client.mail_record(item, when), kind, folder_id, path)
@@ -322,6 +339,8 @@ def sync(
             known.add(entry_id)
             added[kind] += 1
         if finished:
+            all_seen.update(seen)
+            scanned_paths.add(path)
             previous = state["newest"] if state else None
             latest = max([s for s in (previous, _stamp(newest) if newest else None) if s], default=None)
             reached = min(state["covered_from"], since) if covered else since
@@ -333,6 +352,7 @@ def sync(
             break
     if full and not timed_out:
         removed += store.prune_missing_folders({str(getattr(f, "EntryID", "") or "") for _, f in folders})
+        removed += store.prune_unseen(since, all_seen, scanned_paths)
         store.set_meta("last_full", _stamp(now))
     if not timed_out:
         store.set_meta("last_sync", _stamp(now))

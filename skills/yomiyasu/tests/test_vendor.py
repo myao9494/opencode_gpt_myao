@@ -46,7 +46,7 @@ class VendorTests(unittest.TestCase):
         self.assertIn('version: "2.4.0"', upstream)
         skill = (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("references/upstream-SKILL.md", skill)
-        self.assertLess(len(skill), 8000, "要約版の手順書が長くなっています (社内 LLM の窓のため、短く保つ)")
+        self.assertLess(len(skill), 8000, "要約版の手順書が長くなっています (毎回の読み込みのトークンを減らすため、短く保つ)")
         for ref in set(re.findall(r"`(references/[^`<>]+?\.(?:md|txt))`", skill)):
             self.assertTrue((SKILL_DIR / ref).is_file(), f"要約版が指す {ref} がありません")
         self.assertIn("v2.4.0", (SKILL_DIR / "VENDOR.md").read_text(encoding="utf-8"))
@@ -76,6 +76,16 @@ class EntryTests(unittest.TestCase):
         result = self.run_entry("bogus")
         self.assertEqual(result.returncode, 2)
         self.assertIn("使い方", result.stderr)
+
+    def test_スキルのフォルダで実行したら_記録を作らずに止める(self) -> None:
+        # 1.1.1: 通しの試験で、モデルがスキルのフォルダに cd して check を実行し、記録がハーネスの中にたまった
+        env = {k: v for k, v in os.environ.items() if k != "YOMIYASU_STATE_DIR"}
+        result = subprocess.run([sys.executable, "-B", str(SKILL_DIR / "scripts" / "run_yomiyasu.py"), "check", "run",
+                                 "--source", str(self.cwd / "元.md"), "--final", str(self.cwd / "最終稿.md"), "--stance=説明"],
+                                cwd=SKILL_DIR, capture_output=True, text=True, encoding="utf-8", env=env, timeout=120)
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("作業フォルダに戻り", result.stderr)
+        self.assertFalse((SKILL_DIR / ".handoff").exists())
 
     def test_lintとcheckが動き_記録は_handoffの中(self) -> None:
         lint = self.run_entry("lint", "元.md")

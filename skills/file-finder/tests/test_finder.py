@@ -252,6 +252,9 @@ class MatchAndAiTests(FinderTestCase):
         self.ai_ok.write_bytes("---\r\nai_generated: opencode\r\nai_reviewed: true\r\n---\r\n本文\r\n".encode("utf-8"))
         self.summary = vault / "10_summary" / "古い要約_summary.md"
         self.summary.write_text("# 要約\n", encoding="utf-8")
+        (vault / "99_knowledge").mkdir()
+        self.knowledge = vault / "99_knowledge" / "B 橋の点検.md"  # vault-notes の new-note は、ai_generated を付ける
+        self.knowledge.write_text("---\nai_generated: opencode\nai_reviewed: false\n---\nB 橋の点検は 2027 年 5 月\n", encoding="utf-8")
         root = vault.as_posix()
         self.write_config(roots=[root])
         self.backends.fulltext_items = [
@@ -260,6 +263,14 @@ class MatchAndAiTests(FinderTestCase):
             {"full_path": self.ai_ok.as_posix(), "file_ext": "md", "source_type": "local", "match_type": "both", "hybrid_score": 0.9, "snippet": "c"},
             {"full_path": self.summary.as_posix(), "file_ext": "md", "source_type": "local", "match_type": "vector_only", "hybrid_score": 0.45, "vector_score": 0.61, "snippet": "d"},
         ]
+
+    def test_知識ノートは_AIが書いた印があっても_根拠にしてよい(self) -> None:
+        # 1.1.1: 通しの試験で、教えてもらって保存した知識が、次の検索で「AI のまとめ (未レビュー)」になり、根拠から外れた
+        self.backends.fulltext_items = [{"full_path": self.knowledge.as_posix(), "file_ext": "md", "source_type": "local", "match_type": "keyword_only", "snippet": "e"}]
+        code, out, _ = self.run_cli(["content", "B 橋"])
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("AI のまとめ", out)
+        self.assertNotIn("未レビュー", out)
 
     def test_一致の種類と点数_AIのまとめの印(self) -> None:
         code, out, _ = self.run_cli(["content", "まとめ", "--mode", "hybrid"])

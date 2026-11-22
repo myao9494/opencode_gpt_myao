@@ -113,6 +113,6 @@ pw.frame_locator("#detail").get_by_role("link", name="図面").click()
 | 「作業中のタブが閉じられています」 | `open` で開き直すか、`tabs` → `use` |
 | 「見つかりません: …」 | `snapshot` で、セレクタや文字を確かめる。表示を待つなら、先に `wait_for` |
 | iframe の中の要素が出ない | `snapshot` に「iframe があります」と出る。Playwright の `frame_locator` で扱う |
-| 「Playwright が入っていません」 | `.venv` に `requirements.lock` を入れる(スキル `python-env`)。入れられないときは、`page` の部品だけで書く |
+| 「Playwright が入っていません」 | `.venv` に `requirements.lock` を入れる(スキル `python-coding` の「仮想環境とパッケージ」)。入れられないときは、`page` の部品だけで書く |
 | 「止めました: …」(終了コード 4) | 取り消せない操作。依頼に書かれた操作なら `--allow-submit` で実行する。書かれていないなら、人に聞く |
 | 「このタブには、つなげません」 | そのタブで DevTools が開いている。閉じてもらう |

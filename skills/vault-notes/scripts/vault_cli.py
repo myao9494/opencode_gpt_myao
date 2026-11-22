@@ -373,7 +373,7 @@ def tag_notes(tags: list[str], known: dict[str, int]) -> list[str]:
     if not known:
         return []
     if not tags:
-        return ["注意: タグがありません。`tags --grep 語` で既存のタグを探して、合うものを付ける (合うものが無ければ、付けなくてもよい)"]
+        return ["注意: タグがありません。`obsidian tags counts` で既存のタグを探して、合うものを付ける (合うものが無ければ、付けなくてもよい)"]
     by_key = {norm_key(t): t for t in sorted(known, key=lambda t: -known[t])}
     notes = []
     for tag in tags:
@@ -689,30 +689,6 @@ def cmd_related(vault: Path, raw_terms: list[str], limit: int, out: TextIO) -> i
     return 0
 
 
-def cmd_tags(vault: Path, grep: list[str], limit: int, out: TextIO) -> int:
-    candidates = scan_notes(vault)
-    counts = tag_counts(candidates)
-    total = len(counts)
-    patterns = [norm_key(g) for raw in grep for g in re.split(r"[\s,、]+", raw) if g]
-    items = sorted(counts.items(), key=lambda item: (-item[1], item[0]))
-    if patterns:
-        items = [(t, c) for t, c in items if any(p in norm_key(t) for p in patterns)]
-    shown = items[:limit]
-    out.write(f"Vault のタグ: {total} 種類 (対象 {len(candidates)} ノート。frontmatter の tags だけを数えた)"
-              + (f" / 「{'、'.join(grep)}」を含むもの {len(items)} 種類" if patterns else "") + "\n")
-    if not total:
-        out.write("まだタグがありません。新しいタグを作ってよい\n")
-        return 0
-    if not items:
-        out.write("該当するタグはありません。語を変える (言い換え、上位の語、英語・日本語) か、無ければ新しいタグを作る\n")
-        return 0
-    out.write("".join(f"- {tag} ({count})\n" for tag, count in shown))
-    if len(items) > len(shown):
-        out.write(f"- ほか {len(items) - len(shown)} 種類 (--grep で絞る、--limit で増やす)\n")
-    out.write("括弧は、そのタグを持つノートの数。同じ意味のタグがあれば、それを使う (階層 a/b は使わない)\n")
-    return 0
-
-
 def cmd_backup(vault: Path, now: dt.datetime, note: str, cwd: Path, out: TextIO) -> int:
     source = Path(note)
     source = source if source.is_absolute() else cwd / source
@@ -756,9 +732,6 @@ def build_parser() -> argparse.ArgumentParser:
     related = sub.add_parser("related", help="キーワードに関連する既存のノートを探す (名前・タグ・本文。リンクを入れる相手を探す。読み取りだけ)")
     related.add_argument("terms", nargs="+", help="キーワード (複数可。人名・案件名・製品名・用語など、ノートの中心になる語)")
     related.add_argument("--limit", type=int, default=10, help="表示する最大件数")
-    tags = sub.add_parser("tags", help="Vault で使われているタグと件数 (新しいタグを作る前に探す。読み取りだけ)")
-    tags.add_argument("--grep", nargs="+", default=[], help="この語を含むタグだけ (複数可。どれかを含む)")
-    tags.add_argument("--limit", type=int, default=60, help="表示する最大件数")
     return parser
 
 
@@ -786,8 +759,6 @@ def main(argv: list[str] | None = None, stdout: TextIO | None = None, stderr: Te
             return cmd_unreviewed(vault, out, max(1, args.limit))
         if args.command == "related":
             return cmd_related(vault, args.terms, max(1, args.limit), out)
-        if args.command == "tags":
-            return cmd_tags(vault, args.grep, max(1, args.limit), out)
         return cmd_backup(vault, moment, args.note, work, out)
     except VaultError as exc:
         err.write(f"エラー: {exc}\n")

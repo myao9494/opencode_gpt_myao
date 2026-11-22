@@ -1,13 +1,12 @@
-# ローカルのファイル検索(サブエージェント `finder` + スキル `file-finder`)
+# ローカルのファイル検索(スキル `file-finder`)
 
 ローカルのファイルを、中身(全文)と名前で探す。検索してよい場所を決めて、その外は探せないようにする。
 
 ## 構成
 
 ```
-agents/finder.md                      サブエージェント。スキルを読み込んで、場所と根拠の抜粋だけを返す
 skills/file-finder/
-├─ SKILL.md                           使い方と守ること(サブエージェントが読む)
+├─ SKILL.md                           使い方と守ること(メインと researcher が読む)
 ├─ run.bat                            ハーネスの .venv の Python で本体を動かす入口(ASCII のみ)
 ├─ config.sample.json                 設定のひな形
 ├─ config.local.json                  会社側だけの設定(リポジトリには入れない。.gitignore の *.local.json で除外済み)
@@ -29,7 +28,7 @@ skills/file-finder/
 | 設定と接続の確認 | `check` | 両方 | - |
 
 - 使い分け: よく使うフォルダは Local-fulltext-search に入れて、`content` で中身まで探す。あまり使わないフォルダは、Everything の `names` で名前だけ探す。
-- **調査は、1 回の依頼で答えまで出す(0.21.0)。** `finder` は、探して、資料の 1〜3 件を読めば答えられる問いなら、`read` で読んで答えまで返す。「〜について調べて」のように、多くの資料を読む調査は、`researcher` が、探すところから行う(`researcher` も `file-finder` を使える)。以前は、`finder` が場所だけを返し、メインが「読んでよいか」と聞いて止まっていた。
+- **調査は、1 回の依頼で答えまで出す(0.21.0)。** 探したら、資料の 1〜3 件を `read` で読んで、答えまで返す(1.1.1 で、子 `finder` をやめ、メインが `file-finder` で行う)。
 
 ## 対象を決める仕組み
 
@@ -48,7 +47,7 @@ skills/file-finder/
 
 作業フォルダの外のファイルを `read` の道具で開くと、OpenCode の `external_directory` の確認で止まる。止まらずに読む方法は、2 つある。
 
-1. **スキルのスクリプトで読む(設定は要らない)。** テキストのファイルは `file-finder` の `read`、Word・Excel・PowerPoint・PDF は `doc-convert`。どちらも、`roots` の中だけを読む。`finder` と `researcher` は、こちらを使う。
+1. **スキルのスクリプトで読む(設定は要らない)。** テキストのファイルは `file-finder` の `read`、Word・Excel・PowerPoint・PDF は `doc-convert`。どちらも、`roots` の中だけを読む。メインと `researcher` は、こちらを使う。
    - `read` は、`roots` の外、除外のパターン、認証情報らしい名前(`.env`、`*.pem`、`*.key` など)、テキストでないファイル、リンクの先が `roots` の外のものを拒否する(このコマンドだけは、ファイルを開くので、リンクを解いた後の場所でも確かめる)。5 個まで、1 ファイル 12,000 文字まで(続きは `--from-line`)。
 2. **`external_directory` で許可する。** メインが `read` の道具で直接読むときにも、確認が出なくなる。会社側の `opencode.json` に、`roots` と同じフォルダを書く。
 
@@ -81,7 +80,7 @@ skills/file-finder/
    skills\file-finder\run.bat content 見積
    ```
 
-4. OpenCode から: 「`finder` を使って、〇〇について書かれたファイルを探して」。
+4. OpenCode から: 「〇〇について書かれたファイルを探して」(メインが `file-finder` で探す)。
 
 Everything の HTTP サーバーは、そのPCの全ファイル名を localhost から見えるようにする。ユーザー名とパスワードを設定し、`127.0.0.1` だけで受け付けるようにしておく。
 
@@ -99,8 +98,7 @@ Everything の HTTP サーバーは、そのPCの全ファイル名を localhost
 | 全文検索の API | `POST /api/search/indexed` の結果の `full_path` が、ファイルの絶対パスか。`extensions` の形式(`md,txt` でよいか、`.md` か)。`search_type` が `keyword` で動くか | `fulltext_search` |
 | 全文検索の対象 | インデックスされていないフォルダを指定したときの挙動(0 件か、エラーか) | `fulltext_search` |
 | 文字コード | 日本語の出力が文字化けしないか(標準出力を UTF-8 にしている) | `finder_cli.main` |
-| 権限 | `agents/finder.md` の `shell` のパターンが、実際のコマンドに一致するか(パスにスペースがある場合など) | `agents/finder.md` |
-| サブエージェント | `finder` が呼ばれ、スキルを読み込み、返答の形で返すか | `agents/finder.md` |
+| 権限 | `agents/researcher.md` の `shell` のパターンが、実際のコマンドに一致するか(パスにスペースがある場合など) | `agents/researcher.md` |
 
 ## 開発メモ
 

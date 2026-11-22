@@ -28,7 +28,13 @@ def main(argv: list[str]) -> int:
         return 2
     env = dict(os.environ)
     if not env.get("YOMIYASU_STATE_DIR", "").strip():
-        env["YOMIYASU_STATE_DIR"] = str(Path.cwd() / ".handoff" / "yomiyasu")
+        cwd = Path.cwd().resolve()
+        skill_dir = HERE.parent
+        if argv[0] == "check" and (cwd == skill_dir or skill_dir in cwd.parents):
+            # 記録がハーネスの中にたまるのを防ぐ (1.1.1: 通しの試験で、モデルがスキルのフォルダに cd して実行した)
+            sys.stderr.write(f"エラー: スキルのフォルダ ({skill_dir}) で実行しています。作業フォルダに戻り、run.bat (run.sh) をフルパスで実行し直してください (記録は作業フォルダの .handoff/yomiyasu に置く)\n")
+            return 2
+        env["YOMIYASU_STATE_DIR"] = str(cwd / ".handoff" / "yomiyasu")
     env.setdefault("PYTHONIOENCODING", "utf-8")  # Windows の標準出力の文字化けを防ぐ
     command = [sys.executable, "-B", str(HERE / TOOLS[argv[0]]), *argv[1:]]
     return subprocess.call(command, env=env)  # noqa: S603 (同梱のスクリプトを、決まった引数の形で呼ぶだけ)

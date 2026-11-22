@@ -57,7 +57,7 @@
 PyPI へ直接つなぐ間は、悪意のあるパッケージや、似た名前のパッケージを入れてしまう危険がある。LLM が実在しない名前を思いついて、そのまま入れてしまうことにも注意する。
 
 - **プロジェクトごとに `.venv/` を使う。** ハーネス自身のスクリプト(Outlook、ファイル検索、文書の変換)が使う `.venv` は、ハーネスのフォルダ(`C:\Users\<ユーザー>\.config\opencode\`)の直下に 1 つだけ作る(`run.bat` がここを探す)。本体の Python にはパッケージを入れない。`python -m venv .venv` で作り、`.venv\Scripts\python`(Windows)のように、venv の Python を直接指定して実行する(有効化の操作は不要)。`.venv/` は Git に入れない。myao-patch-bridge の `install_company.bat` も、`.venv` を作れる環境ではこの方式。
-- `sample_opencode.json` の `"*pip install*": "ask"` は、`.venv\Scripts\python -m pip install ...` のような形にも一致する。
+- 雛形(`sample_opencode.json`)は、`pip install` を確認なしで許可している(1.0.0。使い勝手を優先)。入れてよいパッケージは、指示(共通 `AGENTS.md` とスキル `python-coding`)で絞る。
 - 入れるパッケージは、人間が決める。LLM には、`requirements` にあるものか、指定された名前のものだけを入れさせる(`AGENTS.md` に書いてある)。
 - バージョンは固定する。可能なら、ハッシュ付きの `requirements.lock` を作り、`pip install --require-hashes -r requirements.lock` で入れる。myao-patch-bridge の `install_company.bat` と同じ方式。
 - **リポジトリには、接続先の URL を書かない。** 接続先は、会社の PC の `pip.ini`(`%APPDATA%\pip\pip.ini`)か、環境変数 `PIP_INDEX_URL` で決める。ミラーに切り替わったときは、この設定だけを変えればよく、リポジトリは変更しなくて済む。
@@ -95,16 +95,14 @@ PyPI へ直接つなぐ間は、悪意のあるパッケージや、似た名前
 | 部品 | 役割 |
 |---|---|
 | `agents/researcher.md` | 大量のファイルを読んで、問いに根拠つきで答える。節約効果が最も大きい。Vault のノート検索にも使う |
-| `agents/reviewer.md` | 読み取り専用のレビュー |
-| `agents/outlook.md` | Outlook のメール・予定・フォルダを、スキル `outlook-mail` のスクリプトで扱う。メールの整理(フォルダの作成と移動)は、案 → 承認 → 実行の順。メールは文章量が多いので、子で処理して要約だけを返す([docs/outlook.md](outlook.md)) |
+| `agents/outlook.md` | Outlook のメール・予定・フォルダを、スキル `outlook-mail` のスクリプトで扱う。メールの整理(フォルダの作成と移動)は、頼まれたらそのまま実行する(移動は記録され、`mail-undo` で戻せる。0.31.0 で承認の段階を外した)。メールは文章量が多いので、子で処理して要約だけを返す([docs/outlook.md](outlook.md)) |
 | `agents/browser.md` + スキル `browser-session` | ブラウザで社内の Web ページを読む。ページの内容は文章量が多いので、子で読んで、要点だけを返す。権限は、スキル `browser-session` の `run.bat`・`run.sh` の実行だけ(`--allow-submit` は deny) |
 | `agents/researcher.md` + スキル `doc-convert` | Word・Excel・PowerPoint・PDF を Markdown に変換してから読む(`read` では読めないため)。画面には保存先と目次だけを出し、必要な部分だけを読ませる([docs/convert.md](convert.md)) |
-| `agents/obsidian.md` + スキル `obsidian-run` | Obsidian のコマンドを、許可リストにあるものだけ実行し、できたファイルを知らせる。実行結果は返らないので、前後のフォルダの差で検出する([docs/obsidian.md](obsidian.md)) |
-| `skills/vault-notes/`、`commands/save-note.md`、`commands/fix-note.md` | ノートの保存(今日のフォルダー)と修正(バックアップ → 承認 → 最小の変更)。メインが行う |
+| スキル `obsidian-cli` | 公式の Obsidian CLI で、ノートを開く・整理する(名前の変更・移動でリンクが自動で直る)・調べる・プラグインのコマンドを実行する。メインが行う(1.1.1 で、子 `obsidian` と `obsidian-run` から置き換えた。[docs/obsidian.md](obsidian.md)) |
+| `skills/vault-notes/`、`commands/save-note.md`、`commands/fix-note.md` | ノートの保存(今日のフォルダー)と修正(バックアップ → 最小の変更)。メインが行う |
 | `agents/diagram.md` + スキル `excalidraw-diagram` | Excalidraw の図を、仕様から作り、点検する。読み戻しは、`diagram-reader` を使う。[docs/excalidraw.md](excalidraw.md) |
 | スキル `diagram-reader`、`commands/read-diagram.md` | 図(Excalidraw・draw.io)を、構造のデータから文章にして読む(画像の図は `read` で見る)。`researcher` と `diagram` が使い、`describe` はメインからも確認なしで使える(画像が見られない環境のため)。[docs/diagram-reader.md](diagram-reader.md) |
-| `agents/finder.md` | ローカルのファイルを、中身(Local-fulltext-search)と名前(Everything)で探して、パスと根拠の抜粋だけを返す。検索してよい場所は設定のフォルダだけ。中身を読む作業は `researcher`([docs/search.md](search.md)) |
-| `commands/summarize.md` | 1.1.0 からメインで動く。重いファイル(Office、1,000 行超、10 ページ超の PDF、画像 4 枚以上)だけ `researcher` に任せる |
+| `commands/summarize.md` | 1.1.0 からメインで動く。Office は変換して、数百行で足りるなら自分で読む。重いファイル(1,000 行超、10 ページ超の PDF、画像 4 枚以上、大きな Office の文書)だけ `researcher` に任せる |
 | `skills/handoff-clean/`、`commands/handoff-clean.md` | `.handoff/` の古いファイルを、`_trash` へ退避する(削除はしない)。メインが、一覧を見せて承認を得てから行う。サブエージェントには持たせない |
 | `skills/create-subagent/` | 新しいサブエージェントを作る手順と、返し方の約束の原本(`handoff-block.md`) |
 | `skills/project-init/`、`commands/init-project.md` | プロジェクトのフォルダに、`AGENTS.md`(汎用テンプレートから)、`.handoff/`、`.gitignore` の行を置く。上書き・削除はしない。`.git` が無ければ `git init` も行う(コミットはしない)。メインが行い、`apply` と `git init` は承認の後([docs/project-init.md](project-init.md)) |
@@ -151,7 +149,7 @@ PyPI へ直接つなぐ間は、悪意のあるパッケージや、似た名前
 
 - スキル(`skills/`)は、スラッシュコマンドでは呼び出せない(公式ドキュメントに記述がない)。モデルが、名前と `description` を見て、`skill` ツールで読み込むかを決める。
 - スラッシュコマンドは `commands/名前.md` で作る。人が呼び出したいスキルには、同じ名前のコマンドを作り、本文で「スキル〇〇を読み込み、その手順に従う」と指示する。
-- 現在の対応: `/meeting-notes` → スキル `meeting-notes`、`/create-subagent` → スキル `create-subagent`。`python-env` はモデルが使うものなので、コマンドは作らない。
+- 現在の対応: `/meeting-notes` → スキル `vault-notes`(「議事録を作る」)、`/create-subagent` → スキル `create-subagent`。`python-coding`(仮想環境とパッケージを含む)はモデルが使うものなので、コマンドは作らない。
 - 本文でスキルを指示する方法は、公式ドキュメントに書かれていない。会社で、スキルが実際に読み込まれるかを確認する(機能テストに追加)。読み込めないときは、コマンド本文に手順を直接書く形に変える。
 - 新しい版では、プロンプトに `@スキル名` と書いて読み込ませる方法がある。会社の版で使えるかは未確認。
 
@@ -258,7 +256,7 @@ V1 から変えたところ(公式の移行ページと設定ページに基づ�
 - **画像の読み取り**: 画像・PDF を `read` で開いて、見えたことだけを書いているか。小さい文字や数値を、推測で補っていないか(図面の寸法、表の数値は、特に確かめる)。
 - **指示への追従**: `AGENTS.md` の規則が、守られているか。守られない規則は、指示文を強めるのではなく、許可ルールやスクリプトの制限で守らせる。
 - **進めすぎ・聞きすぎ**: 「さらりと進める」が守られ、読むだけの作業で確認を挟まないか。逆に、依頼に無い変更まで進めないか。
-- **思考の深さ**: 既定は `low`(雛形の `settings.reasoningEffort`。1.1.0 で `medium` から下げた)。答えの質が足りないなら、`medium` に戻す。`/models` で `azure/gpt-5.4-mini` の variant(`low`・`high` など)を選べる。調べるだけの子(`researcher`、`finder`)は浅く、設計やレビューは深く、の使い分けを試す(エージェントの `model` に `azure/gpt-5.4-mini#low` のように書ける。公式の agents ページ)。
+- **思考の深さ**: 既定は `low`(雛形の `settings.reasoningEffort`。1.1.0 で `medium` から下げた)。答えの質が足りないなら、`medium` に戻す。`/models` で `azure/gpt-5.4-mini` の variant(`low`・`high` など)を選べる。調べるだけの子(`researcher`)は浅く、設計やレビューは深く、の使い分けを試す(エージェントの `model` に `azure/gpt-5.4-mini#low` のように書ける。公式の agents ページ)。
 - **コンテキストの上限**: 次の 5.4 の確認項目を行う。
 
 ### 5.4 コンテキストの上限と、プロバイダーの設定

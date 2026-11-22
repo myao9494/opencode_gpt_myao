@@ -8,6 +8,7 @@ import copy
 import io
 import os
 import re
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -951,6 +952,77 @@ class CacheTests(OutlookTestCase):
         _, out, _ = self.run_cli(["cache-sync", "--full"], self.app)  # 取り直しても、増えも減りもしない
         self.assertIn("新規 0 通", out)
         self.assertIn("キャッシュ: 4 通", out)
+
+    def test_移動したメールを後でOutlookで消しても_全体の取り直しで消える(self) -> None:
+        _, listing, _ = self.run_cli(["cache-search", "会議"], self.app)
+        alias = re.search(r"\] (m[0-9a-f]{6}) ", listing).group(1)
+        self.run_cli(["mail-move", alias, "--to", "案件A"], self.app)
+        # 人が Outlook で、移動先のメールを削除した
+        folder_a = [f for f in self.app.inbox.Folders if f.Name == "案件A"][0]
+        moved_mail = [m for m in folder_a.Items if m.Subject == "会議の日程"][0]
+        folder_a.Items._items.remove(moved_mail)
+        _, out, _ = self.run_cli(["cache-sync", "--full"], self.app)
+        self.assertIn("キャッシュ: 3 通", out)
+        _, listing, _ = self.offline(["cache-search", "会議", "--no-sync"])
+        self.assertIn("見つかりませんでした", listing)
+
+    def test_取り込みの対象の外へ移したメールは_全体の取り直しでも残る(self) -> None:
+        _, listing, _ = self.run_cli(["cache-search", "会議"], self.app)
+        alias = re.search(r"\] (m[0-9a-f]{6}) ", listing).group(1)
+        code, _, _ = self.run_cli(["mail-move", alias, "--to", "アーカイブ", "--root", "mailbox", "--create-missing"], self.app)
+        self.assertEqual(code, 0)
+        _, out, _ = self.run_cli(["cache-sync", "--full"], self.app)
+        self.assertIn("キャッシュ: 4 通", out)  # メールボックス直下は取り込まないが、移したメールは確かめられないので残す
+        _, listing, _ = self.offline(["cache-search", "会議", "--no-sync"])
+        self.assertIn("会議の日程", listing)
+
+    def _duplicate_alias(self, subject: str) -> str:
+        """キャッシュに、同じ短い ID を持つ別のメール (より新しい) を足す。"""
+        self.run_cli(["cache-search", "会議"], self.app)
+        db = sqlite3.connect(str(self.tmp / "cache" / "mail.sqlite3"))
+        with db:
+            alias = db.execute("SELECT alias FROM mails WHERE subject = '会議の日程'").fetchone()[0]
+            db.execute("CREATE TEMP TABLE dup AS SELECT * FROM mails WHERE alias = ?", (alias,))
+            db.execute("UPDATE dup SET entry_id = ?, subject = ?, time = '2099-01-01 00:00:00'", (long_id("z"), subject))
+            db.execute("INSERT INTO mails SELECT * FROM dup")
+        db.close()
+        return alias
+
+    def test_短いIDが重なったら_キャッシュから引かずに止める(self) -> None:
+        alias = self._duplicate_alias("重なった別のメール")
+        oc.alias_cache_path().unlink(missing_ok=True)
+        code, _, err = self.run_cli(["mail-move", alias, "--to", "案件A"], self.app)
+        self.assertNotEqual(code, 0)
+        self.assertIn("複数あります", err + _)
+        self.assertTrue(any(m.Subject == "会議の日程" for m in self.app.inbox.Items))  # 動かしていない
+
+    def test_短いIDが重なっても_cache_showは一覧で表示したメールを読む(self) -> None:
+        alias = self._duplicate_alias("重なった別のメール")  # cache-search で、対応表には会議の日程が入っている
+        code, out, _ = self.offline(["cache-show", alias])
+        self.assertEqual(code, 0)
+        self.assertIn("会議の日程", out)
+        self.assertNotIn("重なった別のメール", out)
+        self.assertEqual(oc.resolve_id(alias), long_id("b"))
+
+    def test_一時フォルダのID対応表が消えても_キャッシュのIDとundoが動く(self) -> None:
+        _, listing, _ = self.run_cli(["cache-search", "会議"], self.app)
+        alias = re.search(r"\] (m[0-9a-f]{6}) ", listing).group(1)
+        # 一時フォルダの ids.json が消えても、メールキャッシュにある ID なら mail-get / mail-move できる
+        oc.alias_cache_path().unlink(missing_ok=True)
+        code, body, _ = self.run_cli(["mail-get", alias], self.app)
+        self.assertEqual(code, 0)
+        self.assertIn("会議の日程", body)
+        code, moved, _ = self.run_cli(["mail-move", alias, "--to", "案件A"], self.app)
+        self.assertEqual(code, 0)
+        new_id = re.search(r"新ID (m[0-9a-f]{6})", moved).group(1)
+        # 再び一時フォルダの ids.json が消えても、mail-undo --last でキャッシュの場所も元に戻る
+        oc.alias_cache_path().unlink(missing_ok=True)
+        code, undone, _ = self.run_cli(["mail-undo", "--last", "1"], self.app)
+        self.assertEqual(code, 0)
+        back_id = re.search(r"新ID (m[0-9a-f]{6})", undone).group(1)
+        code, out, _ = self.offline(["cache-show", back_id])
+        self.assertEqual(code, 0)
+        self.assertIn("フォルダ: 受信 受信トレイ\n", out)
 
     def test_全体の取り直しで_Outlookで動かした_消したメールが合う(self) -> None:
         self.run_cli(["cache-sync"], self.app)

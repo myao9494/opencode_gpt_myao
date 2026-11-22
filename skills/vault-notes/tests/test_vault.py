@@ -449,32 +449,6 @@ class NoteTagsTests(unittest.TestCase):
         self.assertEqual(cli.note_tags(""), [])
 
 
-class TagsCommandTests(AdviceBase):
-    def test_件数の多い順に一覧する_触らない場所は数えない(self) -> None:
-        code, out, err = self.run_cli("tags")
-        self.assertEqual((code, err), (0, ""))
-        self.assertIn("Vault のタグ: 5 種類", out)
-        self.assertLess(out.index("- 株 (5)"), out.index("- 銘柄分析 (1)"))
-        for hidden in ("テンプレ専用", "隠し", "excalidraw"):
-            self.assertNotIn(hidden, out, "テンプレート、.handoff、図のタグは数えない")
-
-    def test_grepは全角半角と大文字小文字を区別しない(self) -> None:
-        _, out, _ = self.run_cli("tags", "--grep", "ai")
-        self.assertIn("- AI (1)", out)
-        self.assertNotIn("- 株", out)
-        _, out, _ = self.run_cli("tags", "--grep", "優待", "生活")
-        self.assertIn("- 優待 (1)", out)
-        self.assertIn("- 生活 (1)", out)
-
-    def test_無いときと_タグが1つも無いVault(self) -> None:
-        _, out, _ = self.run_cli("tags", "--grep", "存在しない語")
-        self.assertIn("該当するタグはありません", out)
-        empty = self.tmp / "empty"
-        (empty / ".obsidian").mkdir(parents=True)
-        _, out, _ = self.run_cli("tags", cwd=empty)
-        self.assertIn("まだタグがありません", out)
-
-
 class RelatedTests(AdviceBase):
     def test_名前_タグ_本文の順に点数が付く(self) -> None:
         code, out, err = self.run_cli("related", "銘柄分析")
@@ -523,8 +497,12 @@ class RelatedTests(AdviceBase):
         self.assertEqual(code, 2)
         self.assertIn("キーワード", err)
         self.run_cli("related", "銘柄分析")
-        self.run_cli("tags")
         self.assertEqual(self.files(), before)
+
+    def test_tagsは_obsidian_cliに移した(self) -> None:
+        # 1.1.1: タグの一覧は、公式の Obsidian CLI の `obsidian tags counts` で取る (重なる機能は、ハーネスのスキルから外した)
+        with self.assertRaises(SystemExit):
+            self.run_cli("tags")
 
 
 class NewNoteAdviceTests(AdviceBase):
@@ -555,7 +533,7 @@ class NewNoteAdviceTests(AdviceBase):
     def test_タグが無ければ_既存のタグを探すよう知らせる_ただし作るのは止めない(self) -> None:
         code, out, _ = self.run_cli("new-note", "--title", "n", "--body-file", self.draft("[[優待メモ]]"))
         self.assertEqual(code, 0)
-        self.assertIn("注意: タグがありません。`tags --grep 語`", out)
+        self.assertIn("注意: タグがありません。`obsidian tags counts`", out)
         self.assertTrue((self.vault / "01_data/2026/11/07/n.md").exists())
 
     def test_ノートもタグも無いVaultでは_何も言わない(self) -> None:

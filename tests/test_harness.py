@@ -6,9 +6,11 @@
 """
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
+import textwrap
 import unittest
 from pathlib import Path
 
@@ -16,8 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 HANDOFF_BLOCK = (ROOT / "skills" / "create-subagent" / "handoff-block.md").read_text(encoding="utf-8")
 
 # 常に読み込まれる量の上限 (トークンの節約のため、増やすときは意識して変える)
-AGENTS_MD_MAX_CHARS = 2750  # 現在は 2,727 文字 (インターネット検索は使えず、社内の Web は認証が要るので browser で読む、と書き直して、2,672 から上げた。その前は 2,672 文字 (最初に無条件でローカルを探す・不明は聞いて 99_knowledge/ に残す、の 2 行を足して、2,481 から上げた。その前は 2,481 文字 (GPT-5.4 mini 版の 1.1.0 で、サブエージェントの節を「基本は自分でやる」に縮めて、2,700 から下げた。その前は 2,661 文字 (GPT-5.4 mini 版の 1.0.0 で、「画像と PDF は read で見られる」「インターネットを使える」に書き換えて、2,550 から上げた。窓が 40 万なので、余裕はある。元のハーネスでは 2,515 文字。0.26.0 で、個人情報の行に「人物ノートの業務の項目は除く」を足し、2,500 から上げた。0.21.0 で「読んでよいか聞かない」を足した)。0.20.0 で、対応表などをプロジェクトのテンプレートへ移して小さくした (共通は、すべての作業に共通することだけ)。日本語のトークン数は、文字数の 1〜2 倍が目安
-DESCRIPTIONS_MAX_CHARS = 3080  # エージェント・スキル・コマンドの description の合計 (メインで拒否したスキルは除く。現在は 3,057 文字。0.28.0 の memory と /remember で 3,080 に上げた。0.26.0 の people と /people で 2,980 に上げた。0.20.0 の python-coding で 2,850 に上げた。約 2,800 トークンで、窓 13 万の 2% 程度)
+AGENTS_MD_MAX_CHARS = 2150  # 現在は 2,113 文字 (1.1.1 で、言い回しの重複を削り、2,993 から縮めた (利用者の依頼「よりシンプルに」)。縮めたときに抜けた決まり (推測との区別、スキルの選び方、語の定義、調べられないと答える、文書の変換は自分で、見えたことだけ) を、点検で戻した。その前は 2,993 文字 (1.1.1 の通しの試験で、モデルが環境変数のキーを printf で表示し、ホームの設定を探し回ったので、「キーの値を表示しない」「関係の無い場所を探し回らない」を足して、2,950 から上げた。その前は 2,910 文字。1.1.1 で「人が出たら people の who で必ず引く。無ければ聞いて登録する」の 1 行と、「作業の依頼でも file-finder で探す。grep で代えない」を足して、2,750 から上げた。試験で、作業の依頼では探さず、資料の人を who で引かなかったため。その前は 2,727 文字 (インターネット検索は使えず、社内の Web は認証が要るので browser で読む、と書き直して、2,672 から上げた。その前は 2,672 文字 (最初に無条件でローカルを探す・不明は聞いて 99_knowledge/ に残す、の 2 行を足して、2,481 から上げた。その前は 2,481 文字 (GPT-5.4 mini 版の 1.1.0 で、サブエージェントの節を「基本は自分でやる」に縮めて、2,700 から下げた。その前は 2,661 文字 (GPT-5.4 mini 版の 1.0.0 で、「画像と PDF は read で見られる」「インターネットを使える」に書き換えて、2,550 から上げた。窓が 40 万なので、余裕はある。元のハーネスでは 2,515 文字。0.26.0 で、個人情報の行に「人物ノートの業務の項目は除く」を足し、2,500 から上げた。0.21.0 で「読んでよいか聞かない」を足した)。0.20.0 で、対応表などをプロジェクトのテンプレートへ移して小さくした (共通は、すべての作業に共通することだけ)。日本語のトークン数は、文字数の 1〜2 倍が目安
+DESCRIPTIONS_MAX_CHARS = 2800  # エージェント・スキル・コマンドの description の合計 (メインで拒否したスキルは除く。現在は約 2,700 文字 (1.1.1 で、子 finder・reviewer、スキル python-env・meeting-notes・obsidian-run と /obsidian-run を外し、obsidian-cli を足した)。その前は 3,057 文字。0.28.0 の memory と /remember で 3,080 に上げた。0.26.0 の people と /people で 2,980 に上げた。0.20.0 の python-coding で 2,850 に上げた。約 2,800 トークンで、窓 13 万の 2% 程度)
 SAMPLE_CONFIG_ALLOWED_KEYS = {"$schema", "model", "update", "share", "instructions", "experimental", "compaction", "tool_output", "providers", "permissions"}  # OpenCode V2 の書き方。増やすときは公式ドキュメントで確かめる (instructions は 0.28.0。v2.2.6 で ~ と * の展開を確かめた。model・experimental・providers は、GPT-5.4 mini 版の 1.0.0。compaction・tool_output は 1.1.0 (総トークンを減らす)。公開スキーマと、v2.2.6 の `opencode debug config` で確かめた)
 MODEL_PROVIDER, MODEL_ID = "azure", "gpt-5.4-mini"  # このハーネスが想定するモデル (Azure の GPT-5.4 mini。画像と PDF を入力できる)
 V1_ONLY_KEYS = {"permission", "autoupdate", "agent", "command", "provider", "plugin"}  # V1 の旧名 (V2 の設定に混ぜない)
@@ -64,9 +66,9 @@ def permission_rules(front: str) -> list[tuple[str, str, str]]:
         if match:
             action, resource = match.group(1), None
             continue
-        match = re.match(r'^\s*resource:\s*"(.*)"\s*$', line)
+        match = re.match(r'^\s*resource:\s*(?:"(.*)"|\'(.*)\')\s*$', line)  # `"` を含むパターンは、YAML の ' で囲む
         if match:
-            resource = match.group(1)
+            resource = match.group(1) if match.group(1) is not None else match.group(2)
             continue
         match = re.match(r"^\s*effect:\s*(allow|ask|deny)\s*$", line)
         if match:
@@ -245,7 +247,7 @@ class ConfigTests(unittest.TestCase):
         for name in ("summarize", "read-diagram", "convert-doc"):
             front, _ = split_frontmatter(read(ROOT / "commands" / f"{name}.md"))
             self.assertNotIn("subagent", top_level_keys(front), f"/{name} は、メインで動かす")
-        for name in ("polish", "diagram", "obsidian-run"):
+        for name in ("polish", "diagram"):  # 1.1.1: /obsidian-run は、公式の Obsidian CLI (スキル obsidian-cli、メインで使う) に置き換えて削除した
             front, _ = split_frontmatter(read(ROOT / "commands" / f"{name}.md"))
             self.assertEqual(top_level_keys(front).get("subagent"), "true", f"/{name} は、重いので子で動かす")
         text = read(ROOT / "AGENTS.md")
@@ -332,9 +334,9 @@ class ConfigTests(unittest.TestCase):
         for path in (ROOT / "templates" / "project" / "document" / "AGENTS.md", ROOT / "templates" / "obsidian" / "AGENTS.md"):
             section = read(path).split("## スキルとエージェントを先に使う", 1)[1].split("\n## ", 1)[0]
             self.assertIn("迷ったら使う", section, path)
-            self.assertRegex(section, r"答える前にスキル `file-finder`")  # 1.1.0: 総トークンを減らすため、探すのはメインがスキルで行う
+            self.assertRegex(section, r"答える・作業する前にスキル `file-finder`")  # 1.1.0: 総トークンを減らすため、探すのはメインがスキルで行う (1.1.1: 作業の依頼でも)
             for name in re.findall(r"`([a-z][a-z-]+)`", section):
-                if name != "skill":
+                if name not in ("skill", "content", "who"):  # 道具の名前と、スキルのサブコマンド (1.1.1)
                     self.assertIn(name, names, f"{path.relative_to(ROOT)} の対応表の {name} が、エージェントにもスキルにもありません")
         self.assertNotIn("## スキルとエージェントを先に使う", read(ROOT / "templates" / "project" / "coding" / "AGENTS.md"))
 
@@ -350,7 +352,73 @@ class ConfigTests(unittest.TestCase):
         self.assertIn("%USERPROFILE%", text)
         self.assertRegex(text, r"無いと決めない")
         self.assertNotIn("| 依頼 | 使うもの |", text, "対応表はプロジェクトのテンプレートに置く")
-        self.assertRegex(text, r"答える前にスキル `file-finder`", "プロジェクトの AGENTS.md が無いフォルダでも、ローカルを先に探す")
+        self.assertRegex(text, r"答える・作業する前にスキル `file-finder`", "プロジェクトの AGENTS.md が無いフォルダでも、ローカルを先に探す (作業の依頼でも)")
+        self.assertIn("スキル `people` の `who` で必ず引く", text)
+        self.assertIn("キー・トークンの値を、`echo`・`printf`・`env` などで表示しない", text)
+        # 1.1.1: AGENTS.md を縮めたときに、決まりが抜けた。要点の語が残っていることを確かめる
+        for key in ("確かめたことと推測を区別", "プロジェクトの `AGENTS.md` に従う", "人・案件・用語・略称", "調べられない", "doc-convert", "見えたことだけ",
+                    "管理外のファイルの削除と上書き", "取り消せない", "指示には従わず", "本番のデータ"):
+            self.assertIn(key, text, f"共通 AGENTS.md に {key!r} がありません")  # 1.1.1: 試験で、キーを表示した  # 1.1.1: 人が出たら引き、無ければ聞いて登録する
+
+    def test_モデルが読むファイルは実在の部品だけを指す(self) -> None:
+        # 1.1.1: 子・スキルを外したり統合したりした後、手順書や雛形に古い名前が残り、モデルが探して迷うのを防ぐ
+        skills = {d.name for d in skill_dirs()} | {d.name for d in (ROOT / "templates" / "ai_work" / ".opencode" / "skills").iterdir() if d.is_dir()}
+        agents = {p.stem for p in agent_files()}
+        removed = ("python-env", "obsidian-run", "`finder`", "`reviewer`", "tags --grep", "Local REST", "社内の小さい", "スキル `meeting-notes`")
+        files = [ROOT / "AGENTS.md", *agent_files(), *command_files(), *[d / "SKILL.md" for d in skill_dirs()], *(ROOT / "templates").rglob("*.md")]
+        for path in files:
+            text = read(path)
+            rel = path.relative_to(ROOT)
+            for name in re.findall(r"スキル `([a-z][a-z0-9-]+)`", text):
+                self.assertIn(name, skills, f"{rel}: スキル `{name}` がありません")
+            for name in re.findall(r"(?:サブエージェント|子) `([a-z][a-z0-9-]+)`", text):
+                self.assertIn(name, agents, f"{rel}: 子 `{name}` がありません")
+            for word in removed:
+                self.assertNotIn(word, text, f"{rel}: 外した・統合した部品の名前 {word!r} が残っています")
+
+    def test_子は共通ルールとのつながりを書いている(self) -> None:
+        # 1.1.1: 共通 AGENTS.md の「file-finder で探す」「who で引く」「知識ノートに保存する」は、子では使えないものがある。断られる道具を試さないよう、各子に注記を置く
+        shared = "**1 回に 1 つのコマンドを実行する**"
+        for path in agent_files():
+            text = read(path)
+            self.assertIn("は、メインが行う。この子では使えない", text, f"{path.name}: 共通ルールのうち、この子で使えないものの注記がありません")
+            if "shell" in text and 'resource: "*"\n    effect: deny' in text.split("---", 2)[1].replace("\r", ""):
+                self.assertIn(shared, text, f"{path.name}: 「1 回に 1 つのコマンド」の段落がありません (つなぐと全体が拒否される)")
+
+    def test_節の参照は実在の見出しを指す(self) -> None:
+        # 1.1.1: 「スキル `x` の「節」」「下の「節」」が、実在する見出しや太字を指すこと (節の名前を変えたときに、参照が切れないように)
+        def anchors(path: Path) -> list[str]:
+            text = read(path)
+            return [re.sub(r"[`*]", "", h) for h in re.findall(r"^#{1,4} (.+)$", text, re.M) + re.findall(r"\*\*([^*]+)\*\*", text)]
+        skill_md = {d.name: d / "SKILL.md" for d in skill_dirs()}
+        files = [ROOT / "AGENTS.md", *agent_files(), *command_files(), *skill_md.values(), *(ROOT / "templates").rglob("*.md")]
+        for path in files:
+            text = read(path)
+            for name, section in re.findall(r"`([a-z][a-z0-9-]+)`(?: の|の)「([^」]{2,40})」", text):
+                if name in skill_md:
+                    target = re.sub(r"[`*]", "", section)
+                    self.assertTrue(any(target in a for a in anchors(skill_md[name])), f"{path.relative_to(ROOT)}: `{name}` の「{section}」がありません")
+            own = anchors(path)
+            for section in re.findall(r"(?:下|上)の「([^」]{2,40})」", text):
+                target = re.sub(r"[`*]", "", section)
+                self.assertTrue(any(target in a for a in own), f"{path.relative_to(ROOT)}: 「{section}」がありません")
+
+    def test_文書の節と版の参照は実在する(self) -> None:
+        # 1.1.1: クイックスタートの節を足して番号がずれたときなどに、参照が切れないようにする
+        def heads(path: Path, pattern: str) -> set[str]:
+            return set(re.findall(pattern, read(path), re.M))
+        targets = {
+            r"README(?:\.md)?(?:\]\([^)]*\))?\s*の\s*(6\.\d+)": heads(ROOT / "README.md", r"^### (6\.\d+) "),
+            r"クイックスタート(?:\.md)?(?:\]\([^)]*\))?\s*の\s*(\d+(?:\.\d+)?)": heads(ROOT / "クイックスタート.md", r"^## (\d+)\. ") | heads(ROOT / "クイックスタート.md", r"^### (\d+\.\d+) "),
+            r"company-checklist(?:\.md)?(?:\]\([^)]*\))?\s*の\s*(\d+)": heads(ROOT / "docs" / "company-checklist.md", r"^## (\d+)\. "),
+            r"obsidian\.md(?:\]\([^)]*\))?\s*の\s*(\d+)": heads(ROOT / "docs" / "obsidian.md", r"^## (\d+)\. "),
+            r"CHANGELOG(?:\.md)?(?:\]\([^)]*\))?\s*の\s*(\d+\.\d+\.\d+)": heads(ROOT / "CHANGELOG.md", r"^## (\d+\.\d+\.\d+) "),
+        }
+        for path in [p for p in ROOT.rglob("*.md") if ".git" not in p.parts and "references" not in p.parts]:
+            text = read(path)
+            for pattern, found in targets.items():
+                for ref in re.findall(pattern, text):
+                    self.assertIn(ref, found, f"{path.relative_to(ROOT)}: 参照先 {ref} がありません ({pattern[:20]}…)")
 
     def test_AGENTS_mdはCLAUDE_mdを最初に読むと書いている(self) -> None:
         # 以前 Claude Code で開発したリポジトリ用。OpenCode は AGENTS.md があると CLAUDE.md を読み込まないことがある
@@ -485,6 +553,10 @@ class PermissionBehaviorTests(unittest.TestCase):
         ])
         # 確認が残るもの: 取り返しのつかない操作
         self.check(None, [("rm -rf build", "ask"), ("git push origin main", "ask"), ("git push --force origin main", "ask"), ("git reset --hard HEAD~1", "ask"), ("diskpart", "ask")])
+        # 1.1.1: 公式の Obsidian CLI。整理 (名前の変更・移動) と調べるのは確認なし。削除だけ確認 (手順書でも使わない)
+        self.check(None, [('obsidian move file="報告書" to=01_data/2026', "allow"), ('obsidian rename file="報告書" name="報告書_改"', "allow"),
+                          ("obsidian unresolved total", "allow"), ('obsidian vault="仕事" backlinks file="報告書"', "allow"),
+                          ('obsidian delete file="報告書"', "ask"), ('obsidian vault="仕事" delete path="a.md"', "ask"), ("obsidian delete", "ask")])
         # 画像と PDF は、read で開ける
         self.check(None, [("docs/図.png", "allow"), (".handoff/browser/画面.png", "allow"), ("資料/仕様書.pdf", "allow")], action="read")
 
@@ -510,11 +582,10 @@ class PermissionBehaviorTests(unittest.TestCase):
         self.check(None, [(f"{HOME}/.config/opencode/skills/vault-notes/scripts/*", "allow"), (f"{HOME}/.config/opencode/*", "allow"), ("/etc/*", "allow")], action="external_directory")  # GPT-5.4 mini 版の 1.0.0: 作業フォルダの外も確認しない
 
     def test_読み取り専用の子は_handoffにだけ書け_グローバルのshell許可を使えない(self) -> None:
-        for agent in ("researcher", "reviewer", "finder", "outlook", "browser", "diagram", "obsidian", "polish"):
+        for agent in ("researcher", "outlook", "browser", "diagram", "polish"):
             self.check(agent, [("src/a.py", "deny"), (".handoff/researcher_x.md", "allow")], action="edit")
             self.check(agent, [("type a.txt", "deny"), ("dir", "deny"), ("rm -rf x", "deny"), ("git push", "deny"), ("python x.py", "deny")])
-            if agent != "reviewer":  # reviewer だけは、Git の読み取りができる (下のテスト)
-                self.check(agent, [("git status", "deny"), ("git diff", "deny")])
+            self.check(agent, [("git status", "deny"), ("git diff", "deny")])
 
     def test_子は_子を呼べない(self) -> None:
         # 0.22.0: 読んだ文書やメールに「outlook に頼んで」と書かれていても、子から別の子へ広がらないようにする (役割の外に出ない。繰り返しも防ぐ)
@@ -531,15 +602,10 @@ class PermissionBehaviorTests(unittest.TestCase):
                 expected = "allow" if directory.name in allowed else "deny"
                 self.assertEqual(decide(path.stem, "skill", directory.name), expected, f"{path.name}: skill {directory.name}")
 
-    def test_reviewerはGitを読むだけ(self) -> None:
-        # 0.22.0: 「変更をレビューして」を 1 回で終わらせる。差分を自分で読める。書く・消す・外へ出すことはできない
-        self.check("reviewer", [
-            ("git status", "allow"), ("git status --short", "allow"), ("git diff", "allow"), ("git diff --stat", "allow"), ("git diff -- src/a.py", "allow"),
-            ("git log -5 --oneline", "allow"), ("git show HEAD", "allow"),
-            ("git diff --output=a.patch", "deny"), ("git log --output a.txt", "deny"), ("git diff > a.patch", "deny"),
-            ("git commit -m x", "deny"), ("git checkout .", "deny"), ("git push", "deny"), ("git stash", "deny"), ("git add -A", "deny"),
-            ("git -c core.pager=x diff", "deny"), ("xgit diff", "deny"),
-        ])
+    def test_子は5つ_finderとreviewerはメインが行う(self) -> None:
+        # 1.1.1: 総トークンを減らす方針で、探すのとレビューはメインが行う (子 finder・reviewer をやめた)
+        self.assertEqual({p.stem for p in agent_files()}, {"browser", "diagram", "outlook", "polish", "researcher"})
+        self.check(None, [("git status", "allow"), ("git diff --stat", "allow"), ("git show HEAD", "allow")])
 
     def test_メインの確認と拒否_0_22_0で足したもの(self) -> None:
         o = rf"{SKILLS_WIN}\outlook-mail\run.bat"
@@ -604,19 +670,21 @@ class PermissionBehaviorTests(unittest.TestCase):
         p = rf"{SKILLS_WIN}\people\run.bat"
         self.check("outlook", [
             (f"{p} who --mail m1a2b3c", "allow"), (f"{p} who 山田 taro@abc.co.jp", "allow"), (f'"{p}" who --self', "allow"),
+            (f"{p} who reset@abc.co.jp new_user@abc.co.jp memo@abc.co.jp", "allow"),
+            (f"{p} who memo", "allow"), (f"{p} who --mail m1a2b3c set new", "allow"),  # 引数の語は、new・set・memo でも読むだけ
+            (f'"{p}" new "山田 太郎"', "deny"), (f'"{p}" memo 山田 "x"', "deny"),
+            (f"{p} who 山田 & {p} set 山田 --role 窓口", "deny"),  # つないで書いても、書き込みは拒否
             (f'{p} new "山田 太郎" --email t@a.jp', "deny"), (f"{p} set 山田 --role 窓口", "deny"),
             (f'{p} memo 山田 "who の確認"', "deny"), (f"{p} candidates", "deny"),
             (f"{p} who 山田 > C:\\Users\\u\\Desktop\\who.txt", "deny"),
         ])
 
-    def test_researcher_finder(self) -> None:
+    def test_researcher(self) -> None:
         self.check("researcher", [
             (rf"{SKILLS_WIN}\doc-convert\run.bat convert 見積.xlsx", "allow"), (f"{SKILLS_MAC}/diagram-reader/run.sh describe a.drawio", "allow"),
             (rf"{SKILLS_WIN}\doc-convert\run.bat convert 見積.xlsx > src\a.py", "deny"),
             (rf"{SKILLS_WIN}\outlook-mail\run.bat mail-list", "deny"),
         ])
-        self.check("finder", [(rf"{SKILLS_WIN}\file-finder\run.bat content 見積", "allow"), (rf"{SKILLS_WIN}\file-finder\run.bat names 見積 > a.txt", "deny"),
-                              (rf"{SKILLS_WIN}\file-finder\run.bat read C:\Docs\議事録.md", "allow")])
         # 0.21.0: 調査を 1 回で終わらせる。researcher も、探して (content / names)、作業フォルダの外のテキストを読める (read)
         self.check("researcher", [
             (rf"{SKILLS_WIN}\file-finder\run.bat content 見積 金額", "allow"), (f"{SKILLS_MAC}/file-finder/run.sh read /Users/u/Docs/a.md", "allow"),
@@ -627,23 +695,21 @@ class PermissionBehaviorTests(unittest.TestCase):
     def test_調査は1回で答えまで出す(self) -> None:
         # 0.21.0: 「検索して、ファイルだけ出して、読んでいいかと聞かれる」への対策。指示から、聞き返して止まる書き方が戻らないようにする
         self.assertIn("読んでよいか聞かない", read(ROOT / "AGENTS.md"))
-        for name in ("finder", "researcher", "outlook"):
+        for name in ("researcher", "outlook"):
             body = read(ROOT / "agents" / f"{name}.md")
             self.assertNotRegex(body, r"(調べ|探さ)ずに、(何を教えてほしいかを返答で)?質問", f"{name}: 読み取りの依頼で、質問して止まる書き方が残っています")
         self.assertIn("探す → 読む → 答える", read(ROOT / "agents" / "researcher.md"))
-        self.assertNotIn("ファイルの中身を、`read` で開いて確かめない", read(ROOT / "agents" / "finder.md"))
         self.assertIn("cache-search", read(ROOT / "agents" / "outlook.md"))
         for path in (ROOT / "templates" / "project" / "document" / "AGENTS.md", ROOT / "templates" / "obsidian" / "AGENTS.md"):
             self.assertIn("調査は、1 回で答えまで出す", read(path), path)
 
-    def test_diagram_obsidian(self) -> None:
-        e, r = rf"{SKILLS_WIN}\excalidraw-diagram\run.bat", rf"{SKILLS_WIN}\obsidian-run\run.bat"
+    def test_diagram(self) -> None:
+        e = rf"{SKILLS_WIN}\excalidraw-diagram\run.bat"
         self.check("diagram", [
             (f"{e} build .handoff/diagram_a.json --out 図_a.excalidraw.md --dry-run", "allow"),
             (f"{e} build .handoff/diagram_a.json --out 図_a.excalidraw.md", "allow"),  # 0.16.0: 同名は上書きしない。Git で戻せる
             (f"{e} check 図_a.excalidraw.md", "allow"), (rf"{SKILLS_WIN}\diagram-reader\run.bat describe 図_a.excalidraw.md", "allow"),
         ])
-        self.check("obsidian", [(f"{r} list", "allow"), (f"{r} run print-html --dry-run", "allow"), (f"{r} run print-html", "allow")])  # 0.16.0: 実行できるのは、設定で許可したコマンドだけ
 
     def test_browserはbrowser_sessionだけを使える(self) -> None:
         w, m = rf"{SKILLS_WIN}\browser-session\run.bat", f"{SKILLS_MAC}/browser-session/run.sh"
@@ -791,11 +857,64 @@ class DocumentTests(unittest.TestCase):
             self.assertIn(f"docs/{doc.name}", readme, f"README に docs/{doc.name} へのリンクがありません")
 
     def test_古い表現が残っていない(self) -> None:
-        stale = ["結果の受け渡し(必ず守る)", "送信・削除・移動はできない", "送信・削除・移動は実装しない", "要約: (3 行以内)"]
+        stale = ["結果の受け渡し(必ず守る)", "送信・削除・移動はできない", "送信・削除・移動は実装しない", "要約: (3 行以内)", "メールの整理は案 → 承認 → 実行"]
         for doc in self.docs() + agent_files() + [d / "SKILL.md" for d in skill_dirs()] + [ROOT / "AGENTS.md"]:
             text = read(doc)
             for phrase in stale:
                 self.assertNotIn(phrase, text, f"{doc.name}: 古い表現が残っています: {phrase}")
+
+    def model_and_docs(self) -> list[Path]:
+        paths = [*self.docs(), ROOT / "AGENTS.md", ROOT / "クイックスタート.md", *agent_files(), *command_files()]
+        paths += [d / "SKILL.md" for d in skill_dirs()] + sorted((ROOT / "templates").rglob("*.md"))
+        return paths
+
+    def test_JSONとPythonの例は文法どおり(self) -> None:
+        # 断片(キーだけ、配列の要素だけ)は、括弧で囲めば読めること。【 】の雛形は除く。
+        for doc in self.model_and_docs():
+            text = read(doc)
+            for match in re.finditer(r"```(json|jsonc|python)\n(.*?)```", text, re.S):
+                lang, body = match.group(1), textwrap.dedent(match.group(2))
+                where = f"{doc.relative_to(ROOT)}:{text[: match.start()].count(chr(10)) + 1}"
+                if "【" in body:
+                    continue
+                if lang == "python":
+                    ast.parse(body)
+                    continue
+                body = re.sub(r"(?m)^\s*//.*$|\s//\s.*$", "", body).strip().rstrip(",")
+                for wrapped in (body, "{" + body + "}", "[" + body + "]"):
+                    try:
+                        json.loads(wrapped)
+                        break
+                    except json.JSONDecodeError:
+                        pass
+                else:
+                    self.fail(f"{where}: JSON の例が読めません")
+
+    # Obsidian CLI 1.15.1 の `obsidian help` で実在を確かめたコマンド。新しく書くときは、help で確かめてから足す。
+    OBSIDIAN_COMMANDS = {
+        "append", "backlinks", "command", "commands", "create", "delete", "eval", "file", "files", "help",
+        "history:restore", "links", "move", "open", "orphans", "outline", "plugin:install", "plugin:uninstall",
+        "prepend", "properties", "property:set", "rename", "search", "sync:restore", "tags", "tasks",
+        "theme:install", "theme:uninstall", "unresolved", "version",
+    }
+
+    def test_Obsidian_CLIの例は確かめたコマンドだけ(self) -> None:
+        for doc in self.model_and_docs():
+            for line in read(doc).splitlines():
+                for part in line.split("`"):
+                    m = re.match(r"\s*(?:\d+\.\s+)?obsidian (?:vault=(?:\"[^\"]*\"|\S+) )?([a-z][a-z:-]*)", part)
+                    if m:
+                        self.assertIn(m.group(1), self.OBSIDIAN_COMMANDS, f"{doc.relative_to(ROOT)}: obsidian {m.group(1)}")
+
+    def test_現在の手順に消した部品が出てこない(self) -> None:
+        # 経緯(CHANGELOG、README の 6、docs の経緯の行)は除く。モデルが読むものと、人が手順に使うもの。
+        removed = ["obsidian-run", "python-env", "agents/finder", "agents/reviewer", "子 `finder`", "子 `reviewer`", "OBSIDIAN_API_KEY"]
+        paths = [ROOT / "AGENTS.md", *agent_files(), *command_files(), *[d / "SKILL.md" for d in skill_dirs()]]
+        paths += sorted((ROOT / "templates").rglob("*.md")) + [ROOT / "sample_opencode.json"]
+        for path in paths:
+            text = read(path)
+            for name in removed:
+                self.assertNotIn(name, text, f"{path.relative_to(ROOT)}: 消した部品 {name} が残っています")
 
     def test_変更履歴に現在の版がある(self) -> None:
         self.assertRegex(read(ROOT / "CHANGELOG.md"), r"(?m)^## \d+\.\d+\.\d+")

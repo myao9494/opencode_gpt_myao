@@ -339,7 +339,11 @@ def note_moves_in_cache(rows: list[dict[str, Any]]) -> None:
         with cache.CacheStore(path) as store:
             for row in rows:
                 if row.get("new_id"):
-                    store.note_moved(oc.resolve_id(row["ref"]), oc.resolve_id(row["new_id"]), row.get("to_path", ""))
+                    try:
+                        old_entry, new_entry = oc.resolve_id(row["ref"]), oc.resolve_id(row["new_id"])
+                    except LookupError:
+                        continue  # 引けない 1 通は飛ばす (次の cache-sync --full で合う)。ほかの行は合わせる
+                    store.note_moved(old_entry, new_entry, row.get("to_path", ""))
     except Exception:  # noqa: BLE001 - キャッシュは作り直せる。次の cache-sync --full で合う
         pass
 
@@ -473,14 +477,20 @@ def cmd_cache_show(args: argparse.Namespace, client_factory: Callable[[], Any], 
         raise ValueError(f"一度に読めるのは {SHOW_LIMIT} 通までです (指定: {len(args.ids)} 通)")
     blocks: list[str] = []
     missing = 0
+    found_aliases: dict[str, str] = {}
     with cache.CacheStore() as store:
         for ref in args.ids:
-            row = store.find(ref)
+            # 一覧で表示した ID なら、そのメールを読む (短い ID が別のメールと重なっても、取り違えない)
+            shown = oc.known_alias(ref)
+            row = (store.find(shown) if shown else None) or store.find(ref)
             if row is None:
                 missing += 1
                 blocks.append(f"id: {ref}\nキャッシュにありません。cache-search で表示された ID を使う。下書きや、期間より古いメールは mail-get で読む")
             else:
+                if store.alias_count(row["alias"]) == 1:  # 重なる ID は、対応表に書かない
+                    found_aliases[row["alias"]] = row["entry_id"]
                 blocks.append(format_cached_mail(row, args.max_chars, args.no_quote))
+    oc.remember_aliases(found_aliases)
     emit("\n\n==========\n\n".join(blocks), args.out, stdout)
     return 1 if missing else 0
 

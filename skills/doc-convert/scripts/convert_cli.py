@@ -63,7 +63,8 @@ def check_input(raw: str, cwd: Path, roots: list[str]) -> Path:
         raise core.ConvertError(f"ファイルがありません: {raw}")
     allowed = [str(cwd), *roots]
     if not any(is_within(str(path), root) for root in allowed):
-        raise ScopeError(f"'{raw}' は、読んでよい場所の外です (作業フォルダと、設定の roots の中だけ)。回避せずに、そのまま報告してください")
+        hint = "スキルのフォルダに cd していたら、作業フォルダに戻り、run.bat (run.sh) をフルパスで実行し直す。" if (cwd / "scripts" / "convert_cli.py").is_file() else ""
+        raise ScopeError(f"'{raw}' は、読んでよい場所の外です (作業フォルダ {cwd} と、設定の roots の中だけ)。{hint}それ以外は、回避せずに、そのまま報告してください")
     return path
 
 

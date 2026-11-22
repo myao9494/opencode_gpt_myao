@@ -21,6 +21,7 @@ import json
 import os
 import re
 import shutil
+import sqlite3
 import sys
 import tempfile
 from contextlib import contextmanager
@@ -161,6 +162,39 @@ def remember_aliases(new: dict[str, str]) -> None:
         pass  # キャッシュに書けなくても、一覧の表示自体は成功させる
 
 
+def known_alias(ref: str) -> str | None:
+    """一時フォルダの対応表 (一覧で表示した ID) にある EntryID。無ければ None。"""
+    return _load_aliases().get(ref.strip())
+
+
+def mailcache_path() -> Path:
+    """メールのキャッシュ (SQLite) の場所。メールの本文が入るので、リポジトリや作業フォルダの外 (利用者のフォルダ) に置く。"""
+    override = os.environ.get("OPENCODE_OUTLOOK_MAILCACHE")
+    if override:
+        return Path(override)
+    base = os.environ.get("LOCALAPPDATA")
+    root = Path(base) if base else Path.home() / ".cache"
+    return root / "opencode-harness" / "outlook-mail-cache.sqlite3"
+
+
+def _lookup_mailcache_alias(ref: str) -> str | None:
+    """一時フォルダの対応表に無いときは、メールのキャッシュ (SQLite) からも引く。
+
+    短い ID は EntryID の先頭 6 桁なので、別のメールと重なることがある。重なったら、取り違えないよう引かない。
+    """
+    db_path = mailcache_path()
+    if not db_path.is_file():
+        return None
+    try:
+        with sqlite3.connect(str(db_path)) as db:
+            rows = db.execute("SELECT DISTINCT entry_id FROM mails WHERE alias = ? LIMIT 2", (ref,)).fetchall()
+    except sqlite3.Error:
+        return None
+    if len(rows) > 1:
+        raise LookupError(f"ID '{ref}' に当たるメールが複数あります。cache-search を実行し直して、表示された ID を使ってください")
+    return str(rows[0][0]) if rows and rows[0][0] else None
+
+
 def resolve_id(ref: str) -> str:
     """短い ID (m1a2b3c など) を EntryID に直す。長い 16 進数は、EntryID としてそのまま使う。"""
     ref = ref.strip()
@@ -168,8 +202,11 @@ def resolve_id(ref: str) -> str:
     if ref in cache:
         return cache[ref]
     if len(ref) >= 40 and re.fullmatch(r"[0-9A-Fa-f]+", ref):
-        return ref
-    raise LookupError(f"ID '{ref}' が見つかりません。先に mail-list を実行して、表示された ID を使ってください")
+        return ref  # 長い EntryID は、キャッシュを開かずにそのまま使う
+    cached_entry = _lookup_mailcache_alias(ref)  # 引くのは速いので、一時フォルダの対応表には書き足さない
+    if cached_entry:
+        return cached_entry
+    raise LookupError(f"ID '{ref}' が見つかりません。先に cache-search または mail-list を実行して、表示された ID を使ってください")
 
 
 # ---------------------------------------------------------------------------

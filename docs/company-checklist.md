@@ -14,7 +14,7 @@
 | [ ] 会社側の `opencode.json` の、モデルの定義に **`limit`(`context`・`input`・`output`)と `capabilities.input`(`image` を含む)が書かれている** | 書かれている(雛形のまま) | [operations.md](operations.md) の 5.4 |
 | [ ] **画像の入力:** 作業フォルダに PNG を 1 つ置き、「この画像に何が写っているか説明して」と送る | `read` で開き、実物と合った説明になる | 「画像は見られない」と答えるときは、`capabilities.input` と、Azure のデプロイが画像の入力を許しているかを確かめる |
 | [ ] **PDF の入力:** 短い PDF(図を含む 1〜2 ページ)で「この PDF の図を説明して」と送る | `read` で開き、図の説明が実物と合う | エラーになるときは、PDF は `doc-convert` だけで読む運用にし、`capabilities.input` から `pdf` を外す |
-| [ ] **Web:** 「OpenCode の最新の版を Web で調べて」と送る | `websearch`・`webfetch` が、確認なしで動き、出典の URL つきで答える | 検索が動かないときは、`/connect` で検索のサービスをつなぐ(公式の websearch ページ)。取得だけなら `webfetch` と `curl` は動く |
+| [ ] **Web:** 「OpenCode の最新の版を調べて」と送る | インターネット検索は使えない前提なので、調べず「調べられない」と答える(共通 `AGENTS.md`)。社内のページの URL を渡したときは、`browser` で開く | 検索しに行ったら、`AGENTS.md` の「インターネット検索は使えない」が読まれているかを見る |
 | [ ] **確認の出方:** 「一時ファイルを作って、`rm` で消して」と送る | 作るところは確認なし。`rm` だけ、確認が出る | 確認が多すぎる・少なすぎるときは、`opencode.json` の `permissions` の `ask` の行を増減する |
 | [ ] 思考の深さ(effort): 既定(`medium`)で動くか。`/models` で `high` などを選べるか | 動く。選べる | 既定でエラーになるときは、`opencode.json` の `settings.reasoningEffort` の行を消す |
 | [ ] 3 手順以上の作業を頼む | 手順の一覧(`todowrite`)が出て、進むたびに更新される | 出なくても動く(`experimental.todo` は実験的) |
@@ -38,16 +38,15 @@
 |---|---|---|
 | [ ] `sample_opencode.json` と会社側の `opencode.json` を見比べて反映する(プロバイダの設定は残す) | JSON が正しい | [CHANGELOG.md](../CHANGELOG.md) |
 | [ ] OpenCode が **V2** であることを確認する(版を記録した欄に書く) | V2 | このハーネスの設定・エージェント・コマンドは V2 の書き方。V1 では動かない |
-| [ ] `opencode debug config`(Mac の V2.2.6 では動いた。会社の版で確認) と `opencode debug agents` | 反映した `permissions` が出る(`mcp` は無い)。自作のエージェント 8 つ(browser、diagram、finder、obsidian、outlook、polish、researcher、reviewer)が `subagent` として出る(内蔵の Explore と General も出る) | キーが読まれない場合は、版を確認する。出ないコマンドなら、5(スキルとコマンド)の動作確認で代える |
+| [ ] `opencode debug config`(Mac の V2.2.6 では動いた。会社の版で確認) と `opencode debug agents` | 反映した `permissions` が出る(`mcp` は無い)。自作のエージェント 5 つ(browser、diagram、outlook、polish、researcher)が `subagent` として出る(内蔵の Explore と General も出る) | キーが読まれない場合は、版を確認する。出ないコマンドなら、5(スキルとコマンド)の動作確認で代える |
 | [ ] Desktop と Obsidian を完全に終了して、起動し直す | 起動する | 設定の書き間違いを疑う |
 | [ ] OpenCode が使うシェルを確かめる(メインで、`echo %ComSpec%` と `$PSVersionTable.PSVersion` を、1 つずつ実行してもらう。cmd なら前者がパスを返し、PowerShell なら後者が版を返す) | cmd / PowerShell / Git Bash のどれかを記録する | 公式に記載がない。スキルの手順書の `run.bat …` は、cmd と PowerShell のどちらでもそのまま動く書き方 |
 | [ ] メインで `dir > .handoff\t.txt` を頼む | 確認なしで動く(0.16.0 で `*>*` の確認を外した。Git で戻せる) | 確認が出たら、会社側の `opencode.json` に古い `*>*` の行が残っていないかを見る |
-| [ ] `outlook` に「件名が folder-list の予定を作って」と頼む(0.9.0 で直した順序) | `cal-create` で**確認の画面が出る** | `agents/outlook.md` の順序(読み取りの許可 → 書き込みの確認)を見る |
+| [ ] `outlook` に「件名が folder-list の予定を作って」と頼む(0.9.0 で直した順序、0.31.0 で確認なし) | `cal-create` が**確認なしで**動く | `agents/outlook.md` の `shell` の許可を見る |
 | [ ] (0.31.0)メインで `skills\outlook-mail\run.bat folder-create テスト` | **確認なしで**フォルダができる | `opencode.json` に、古い `outlook-mail` の `ask` の行が残っていないか(消す) |
-| [ ] (0.22.0)メインで `type .env`(ダミーの `.env` を置いて)、`git commit --amend`、`git rebase -i HEAD~1` を頼む | どれも**確認が出る** | 雛形の該当の行。シェルが PowerShell のときの判定(`Get-Content .env` も確認になる) |
-| [ ] (0.22.0)メインで `curl.exe http://example.com`、`powershell -c "Invoke-WebRequest http://example.com"` を頼む | **拒否される** | 雛形の拒否の行 |
+| [ ] (0.22.0)メインで `git commit --amend`、`git rebase -i HEAD~1` を頼む | どちらも**確認が出る**(`type .env` は、1.0.0 から確認なしで読める。中の値は写さない決まり) | 雛形の該当の行 |
+| [ ] メインで「`curl.exe http://example.com` で中身を見て」と頼む | 雛形は止めていない(1.0.0 で拒否を外した)。インターネット検索は使えない前提なので、社内のページでなければ、実行せずに「調べられない」と答える(共通 `AGENTS.md`) | 実行したら、`AGENTS.md` の「インターネット検索は使えない」が読まれているかを見る |
 | [ ] (0.22.0)`researcher` に「`outlook` を呼んで、今日のメールを調べて」と頼む | **子から子は呼べない**(拒否され、そのことを返答する) | V2 の action 名が `subagent` で合っているか(公式の移行表から取った。違えば、正しい名前に直す) |
-| [ ] (0.22.0)`reviewer` に「変更をレビューして」と頼む | 聞き返さずに、`git status` と `git diff` を読んで指摘を返す。`git commit` などは拒否される | `agents/reviewer.md` の `shell` |
 
 ## 3. AGENTS.md の読み込み
 
@@ -72,9 +71,9 @@
 
 | 確認 | 期待する結果 | だめなとき |
 |---|---|---|
-| [ ] `/meeting-notes` にメモを渡す | スキルが読み込まれ、手順どおりの議事録ができる | [operations.md](operations.md) の「スキルとスラッシュコマンド」 |
+| [ ] `/meeting-notes` にメモを渡す | `vault-notes` が読み込まれ、「議事録を作る」の手順どおりの議事録ができる | [operations.md](operations.md) の「スキルとスラッシュコマンド」 |
 | [ ] `/create-subagent` | 先に、サブエージェントが必要かの判断を返す | 同上 |
-| [ ] 「Python のパッケージを入れたい」と頼む | `python-env` に沿って、確認を求める | AGENTS.md の Python の節 |
+| [ ] 「Python のパッケージを入れたい」と頼む | `python-coding` の「仮想環境とパッケージ」に沿って、確認を求める | AGENTS.md の Python の節 |
 
 ## 6. サブエージェントの共通の動作
 
@@ -86,7 +85,7 @@
 | [ ] 子の返答だけが、メインのコンテキストに入る | メインのトークン数が、子の読んだ量の分だけは増えない | 画面のトークン数で比べる |
 | [ ] 子が共通 `AGENTS.md` を読むか | 記録する(読む / 読まない) | どちらでも動く設計 |
 | [ ] 返答が不足しているとき、メインが補いに行く | 詳細ファイルを読むか、子に続きを依頼する | `AGENTS.md` のサブエージェントの節 |
-| [ ] `/summarize ファイル名` | 子セッションで実行され、要約だけが返る | `subagent: true` |
+| [ ] `/summarize ファイル名` | メインで読んで、要約だけを返す(Office は変換して、数百行で足りるなら自分で読む)。重いファイルだけ `researcher` に任せる | `commands/summarize.md` |
 
 ## 7. Outlook(`outlook` / `outlook-mail`)
 
@@ -106,7 +105,7 @@ Outlook を起動してから行う。詳細は [outlook.md](outlook.md)。
 | [ ] `run.bat cache-search 見積 --since 2026-11-01`、`cache-show <ID> <ID>` | 受信も送信も出る。抜粋と本文が、Outlook の画面と一致する。2 回目の `cache-search` は数秒で終わる | 並べ替え(`CACHE_SORT_FIELDS`) |
 | [ ] 新着のメールが 1 通届いた後で `cache-search --since today` | 新着が出る(差分の取り込み) | `outlook_cache.sync` |
 | [ ] `outlook` に「今日届いたメールから、自分の作業を挙げて」と頼む | 期間などを聞き返さず、キャッシュから読んで、1 回で答える | `agents/outlook.md` の手順 2〜4 |
-| [ ] `outlook` に「整理して」と頼む | まず案だけが出て止まる。承認後に実行する | [outlook.md](outlook.md) の運用 |
+| [ ] `outlook` に「整理して」と頼む | 案の承認を待たずに移動が実行され、結果と `mail-undo` の戻し方が返る | [outlook.md](outlook.md) の運用 |
 | [ ] 書き込み系のコマンド(フォルダの作成、移動)で、確認が出ない | 出ない | `agents/outlook.md` の `shell` |
 
 ## 8. ブラウザ(`browser` / `browser-session`)
@@ -118,11 +117,11 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 | [ ] `opencode.json` に、`mcp` の項目と `playwright_*` の `deny` が残っていない | 残っていない | 消す(残っていても害は少ないが、MCP の起動で失敗の表示が出る) |
 | [ ] `run.bat start` → `status` | Edge が開き、状態が出る | 20 の最初の行 |
 | [ ] `browser` に、社内ページの内容を尋ねる | スキルを読み込み、`run.bat open` → `text` で読んで、要点を返す | `agents/browser.md` の `shell` と `skill` の許可 |
-| [ ] `browser` が `run.bat` を実行するとき、確認が出ない。`--allow-submit` つきは拒否される | そうなる | `agents/browser.md` の `permissions`(子の権限が、メインの設定を上書きしているか) |
+| [ ] `browser` が `run.bat` を実行するとき、確認が出ない(`--allow-submit` つきも。0.31.0 で拒否を外した。使うのは、依頼に送信・申請などが書かれているときだけ) | そうなる | `agents/browser.md` の `permissions`(子の権限が、メインの設定を上書きしているか) |
 | [ ] ログインが必要なページ | 入力せずに止まり、人間にログインを促す | - |
 | [ ] 作業フォルダに `.handoff/browser/` ができる | できる(`.gitignore` で除外済み) | - |
 
-## 9. ファイル検索(`finder` / `file-finder`)
+## 9. ファイル検索(`file-finder`)
 
 詳細は [search.md](search.md)。
 
@@ -135,7 +134,7 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 | [ ] `run.bat content 見積` | `roots` の中のインデックス済みのファイルだけ。抜粋つき | `extensions` の形式 |
 | [ ] `--folder` に `roots` の外を指定する | 拒否される | - |
 | [ ] `run.bat read <roots の中の .md のパス>`、続けて `roots` の外のパス | 中は行番号つきで読める。外は拒否される | `search_core.read_text` |
-| [ ] `finder` に「〇〇の連絡先は」と聞く | 探して、読んで、答えまで返す。**「読んでよいか」と聞かれない。許可の確認も出ない** | `agents/finder.md` |
+| [ ] 「〇〇の連絡先は」と聞く | メインが `file-finder` で探して、読んで、答えまで返す。**「読んでよいか」と聞かれない。許可の確認も出ない** | 共通 `AGENTS.md` の「探す・人・知識」 |
 | [ ] メインに「〇〇について調べて」と頼む(作業フォルダの外に資料がある) | `researcher` が、探す → 読む → 答える、を 1 回で行う。許可の確認が出ない | `agents/researcher.md`、[search.md](search.md) |
 
 ## 10. 文書の変換(`researcher` / `doc-convert`)
@@ -167,29 +166,29 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 | [ ] 移動したファイルを元の場所へ戻せる | 戻せる | - |
 | [ ] `_trash` を、人間がエクスプローラーで削除できる | できる | - |
 
-## 12. Obsidian 連携(`vault-notes` / `obsidian-run` / `obsidian`)
+## 12. Obsidian 連携(`vault-notes` / `obsidian-cli`)
 
-詳細は [obsidian.md](obsidian.md)。準備(プラグインの導入、環境変数、設定ファイル)は、そちらの 6。
+詳細は [obsidian.md](obsidian.md)。準備(Obsidian CLI を有効にする)は、[クイックスタート.md](../クイックスタート.md) の 7。
 
 | 確認 | 期待する結果 | だめなとき |
 |---|---|---|
 | [ ] Vault の中で `skills\vault-notes\run.bat today` | 日付(曜日)と時刻がPCの時計と合う。今日のフォルダーが `01_data/年/月/日`(2 桁) | `daily_dir` の設定。Vault が見つからないときは、実行する場所 |
 | [ ] `/save-note` で、検討した内容を保存する | 今日のフォルダーに、`created` とタグつきのノートができる。同名は `_2`。Obsidian で開ける | frontmatter の形を Vault に合わせる(`vault_cli.py` の `build_note`) |
 | [ ] 保存したノートの frontmatter、タグ、リンクの形 | Vault の決まり(階層なしのタグ、`[[ノート名]]`)と合う | `templates/obsidian/AGENTS.md` |
-| [ ] 会社の Vault で `skills\vault-notes\run.bat tags --grep 〇〇` と `run.bat related 〇〇 △△` | 既存のタグ(件数つき)と、関連するノート(`[[ノート名]]`、タグ、一致した 1 行)が出る。図・テンプレートは出ない。時間が長くかかる(数十秒以上)なら、Vault の大きさと、ウイルス対策の影響を見る | `skills/vault-notes/scripts/vault_cli.py` の `NON_NOTE_DIRS`(会社の Vault のフォルダー構成が違うとき) |
-| [ ] `/save-note` で、既存のノートと同じ話題のノートを保存する | 保存の前に `related` と `tags` が使われ、本文に既存のノートへの `[[リンク]]`(または末尾の `## 関連`)が入り、タグは既存のものになる。報告に、リンクしたノートと付けたタグ(新しいタグは理由)がある | `skills/vault-notes/SKILL.md` の手順 3・4。`--dry-run` の「注意」(リンクなし・新しいタグ)を読んでいるか |
-| [ ] `/fix-note` で、既存のノートを直す | バックアップ(`.handoff\backup\`)→ 変更前後の提示 → 承認 → 最小の変更。frontmatter、リンク、Dataview のブロックが変わらない | `skills/vault-notes/SKILL.md` |
+| [ ] 会社の Vault で `obsidian tags counts sort=count` と `skills\vault-notes\run.bat related 〇〇 △△` | 既存のタグ(件数つき)と、関連するノート(`[[ノート名]]`、タグ、一致した 1 行)が出る。図・テンプレートは出ない。時間が長くかかる(数十秒以上)なら、Vault の大きさと、ウイルス対策の影響を見る | `skills/vault-notes/scripts/vault_cli.py` の `NON_NOTE_DIRS`(会社の Vault のフォルダー構成が違うとき) |
+| [ ] `/save-note` で、既存のノートと同じ話題のノートを保存する | 保存の前に `related` と `obsidian tags counts` が使われ、本文に既存のノートへの `[[リンク]]`(または末尾の `## 関連`)が入り、タグは既存のものになる。報告に、リンクしたノートと付けたタグ(新しいタグは理由)がある | `skills/vault-notes/SKILL.md` の手順 3・4。`--dry-run` の「注意」(リンクなし・新しいタグ)を読んでいるか |
+| [ ] `/fix-note` で、既存のノートを直す | バックアップ(`.handoff\backup\`)→ 承認を待たずに最小の変更 → `mark-edit` の印。報告に変更前と変更後。frontmatter、リンク、Dataview のブロックが変わらない | `skills/vault-notes/SKILL.md` |
 | [ ] `new-note`、`today`、`backup` の許可 | どれも確認なしで動く(0.16.0。Vault は Git で戻せる) | `sample_opencode.json` の `shell` |
-| [ ] Obsidian の Local REST API を有効にし、`OBSIDIAN_API_KEY` を設定して `skills\obsidian-run\run.bat check` | 接続OK、APIキー OK | URL とポート、TLS(CA 証明書か HTTP)、キー |
-| [ ] `run.bat commands --grep 〇〇` | 使いたいプラグインのコマンドが、一覧に**出る** | 出なければ、そのプラグインはコマンドを登録していない。実行できない |
-| [ ] `config.local.json` の `commands` に 1 つ書いて `run.bat run 名前 --dry-run`、続けて実行 | 実行され、できたファイルが「新規」として出る | `watch` の場所、`wait_sec` / `settle_sec` |
-| [ ] ファイルを作らないコマンド、または対象外の場所に作るコマンド | 「検出できませんでした」と出る。成功と言わない | - |
-| [ ] 許可していない名前、コマンド ID の直接指定 | 拒否され、通信もされない | - |
-| [ ] 「現在のノートを〜」のコマンド | 開いているノートに対して動く(対象を開いてから実行) | 対象を API から開く機能は無い |
-| [ ] `/obsidian-run 名前` | 子セッションで実行され、できたファイルの場所が返る。実行の確認が出る | `agents/obsidian.md` の `shell` |
-| [ ] 会社の Vault に、`custom:export-html-human` を足した(自宅と同じ変更)後、Obsidian を再起動して `run.bat commands --grep export-html` | 一覧に出る。`run.bat run export-html-human` で、`temp\` に HTML ができる | [CHANGELOG.md](../CHANGELOG.md) の 0.3.0、[obsidian.md](obsidian.md) の 9 |
+| [ ] (1.1.1)`obsidian version`、`obsidian vault="<Vault>" files total`、`obsidian vault="<Vault>" unresolved total` | 版(1.12.7 以降)、ノートの数、切れたリンクの数が出る | 「Command line interface is not enabled」は設定。`obsidian` が無いなら、PowerShell・OpenCode の起動し直し(`PATH`)。[クイックスタート.md](../クイックスタート.md) の 7 |
+| [ ] (1.1.1)OpenCode から `obsidian version` を頼む | 確認なしで動く。Windows の `Obsidian.com` が、OpenCode の `shell` から呼べる | `PATH`。呼べなければ、`Obsidian.com` のフルパスを `obsidian-cli` の手順書に書く |
+| [ ] (1.1.1)Vault の `.obsidian/app.json` の `alwaysUpdateLinks` | `true` | 設定 → Files and links → Automatically update internal links |
+| [ ] (1.1.1)試しのノートを 2 つ作り、片方からもう片方へリンクしてから、「このノートを `01_data/000_適宜移す/試し` に移して、名前を〇〇に変えて」と頼む | `obsidian-cli` の手順(設定の確認 → `unresolved` → `move`・`rename` → `unresolved`)で動き、リンク元のノートの `[[ ]]` が新しい名前に直る。切れたリンクの数が増えない | 引数の書き方(`obsidian help move`・`obsidian help rename`)。`move` で動かさずシェルで動かしていないか |
+| [ ] (1.1.1)「試しのノートを消して」と頼む | 消さずに、人が消すように報告する。`obsidian delete …` を打たれたら、確認が出る | `skills/obsidian-cli/SKILL.md` の「消さない」、雛形の `ask` |
+| [ ] (1.1.1)「〇〇のノートを開いて」 | `file` で確かめてから `open` で開く。返答に `[[〇〇]]`。無い名前なら、開かずに探し直す(ノートを作らない) | `obsidian help open`。無い名前で `open` するとノートができるかを記録する |
+| [ ] (1.1.1)`obsidian commands` で、使いたいプラグインのコマンドが出るか | 出る(Pandoc の HTML 書き出し、`custom:export-html-human` など) | 出なければ、そのプラグインはコマンドを登録していない |
+| [ ] (1.1.1)「このノートを印刷用の HTML にして」 | `open` → `command id=…` で実行し、できたファイルの場所を返す。見つからなければ、成功と言わない | 開いているノートが対象か。ダイアログが出るコマンドは自動に向かない |
+| [ ] (1.1.1)以前の Local REST API の準備(プラグイン、`OBSIDIAN_API_KEY`、`skills\obsidian-run\` の自分のファイル) | 片付けた、またはほかで使うので残した、を記録する | - |
 | [ ] 印刷用 HTML の作成 | プラグインのコマンドで作るか、LLM が直接書くか、どちらが合うかを記録する | [obsidian.md](obsidian.md) の 9 |
-| [ ] 環境変数の API キーが、どの画面・ファイルにも出ていない | 出ていない | - |
 
 ## 13. 図(`diagram-reader` / `excalidraw-diagram` / `diagram`)
 
@@ -203,12 +202,12 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 | [ ] 同じ図を、GPT-5.4 mini に説明させる(`/read-diagram ファイル名`) | `describe` を使い(画像として開かない)、実際の図と合った説明になる(分岐、担当、流れ、注記) | `describe` の出力を見て、どこが足りないかを記録する |
 | [ ] `describe --format mermaid` | フロー図・スイムレーンで、LLM が読みやすい | - |
 | [ ] 画像の図(PNG)を指定する(`/read-diagram 図.png`) | `read` で開いて、説明する。読めない小さな文字は、未確認と書く(`describe` に渡した場合は「対応していない形式です」と出て、`read` に切り替える) | 推測で補うときは、`skills/diagram-reader/SKILL.md` を直す |
-| [ ] `/diagram 内容` で、フロー図・スイムレーン・ツリー・マインドマップを作る | `図_〇〇.excalidraw.md` ができる。「注意」が出ない。実行の確認が出る | 仕様の間違いは、メッセージのとおり直す |
+| [ ] `/diagram 内容` で、フロー図・スイムレーン・ツリー・マインドマップを作る | `図_〇〇.excalidraw.md` ができる。「注意」が出ない。確認なしで動く(0.16.0。同名は上書きしない) | 仕様の間違いは、メッセージのとおり直す |
 | [ ] できた図を、会社の Obsidian で開く | 日本語が表示される。箱・矢印・ひし形(角が丸くない)・レーンが、意図どおり。矢印をつかんで動かすと、箱に付いてくる | プラグインの版の違い。崩れの内容を報告 |
 | [ ] 同名の図があるとき | 上書きされず、`_2` が付く | - |
 | [ ] `researcher` に、図を埋め込んだノートの内容を尋ねる | 図の内容も踏まえて答える(`links` → `describe`) | `agents/researcher.md` の `skill` と `shell` |
 | [ ] `describe` と `build` の許可 | どちらも確認なしで動く(0.16.0。`build` は同名の図を上書きしない) | `sample_opencode.json` の `shell` |
-| [ ] Obsidian の「HTMLで出力(人間用)」(`obsidian-run` 経由でも可)で、作った図が画像になって HTML に入る | 入る | [obsidian.md](obsidian.md) |
+| [ ] Obsidian の「HTMLで出力(人間用)」(`obsidian-cli` の `command` 経由でも可)で、作った図が画像になって HTML に入る | 入る | [obsidian.md](obsidian.md) |
 
 ## 14. Obsidian(Claudian)
 
@@ -222,7 +221,7 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 
 [operations.md](operations.md) の 2.3「効果の測り方」と 5.2 のとおり、**実際に困った依頼を 20〜50 件**集めて、同じ依頼を 2 通り(メインだけ / 子経由)で、数回ずつ試す。まず、次の 2 件から始める。
 
-| 質問の例 | メインだけ | `researcher` / `finder` / `outlook` 経由 |
+| 質問の例 | メインだけ | `researcher` / `outlook` 経由 |
 |---|---|---|
 | Vault から「〇〇について書いたノートの要点」 | メインのトークン数: / 正しさ: / 時間: | 同左 |
 | 受信トレイから「今週の〇〇さんのメールの要点」 | 同左 | 同左 |
@@ -244,7 +243,7 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 - ブラウザの自動操作(スキル `browser-session`)を使うこと。Edge を `--remote-debugging-port`(127.0.0.1 だけ)つきで起動し、スクリプトから操作する
 - メール本文・Vault のノート・資料の画像・Web で読んだ内容を、Azure のリソース(GPT-5.4 mini)に渡すこと(元のハーネスでの許可は、社内 LLM についてのもの)
 - Azure の API キーの置き場所(ユーザーの環境変数)と、キーの更新の手順
-- Obsidian の Local REST API プラグインを入れること(自分の PC の中だけの通信。API キーを使う)。許可リストのコマンドがスクリプトから実行されること
+- Obsidian の公式の CLI を有効にすること(自分の PC の中だけ。起動中の Obsidian につなぐ)。AI が、ノートの名前の変更・移動と、プラグインのコマンドの実行を行うこと(削除は行わない)
 - 文書の変換のスクリプトが、作業フォルダや `roots` の中の Office・PDF のファイルを読み、`.handoff\converted\` に書くこと。`pypdf`(PyPI から取得)を入れること
 
 ## 17. プロジェクトの初期設定(`project-init`)
@@ -257,7 +256,7 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 | [ ] `/init-project <テスト用フォルダ>` | スキルが読み込まれ、`check` と `plan` が確認なしで動く。`plan` の内容が示される | コマンドからスキルを読み込めない場合は、[operations.md](operations.md) の 2.3 |
 | [ ] 承認すると `apply` が動く(0.16.0 から、権限の確認は出ない。承認は会話で取る) | `AGENTS.md`、`.handoff/`、`.gitignore` が置かれる | 承認の前に `apply` したら、手順書を強める |
 | [ ] もう一度 `/init-project` | 「何もする必要がありません」 | - |
-| [ ] coding の AGENTS.md があるプロジェクトで「この関数に入力の検査を足して」 | スキル `python-coding` を読んでから、テストを先に書いて直す。`finder` は使わない | 読まなければ、テンプレートの「コーディングのスキル」の節を強める |
+| [ ] coding の AGENTS.md があるプロジェクトで「この関数に入力の検査を足して」 | スキル `python-coding` を読んでから、テストを先に書いて直す。社内の資料の検索(`file-finder`)は使わない | 読まなければ、テンプレートの「コーディングのスキル」の節を強める |
 | [ ] プロジェクトの中(`.opencode/skills/`)に別のスキルがあるフォルダで、`calc-check` を使わせる | 共通の場所(`%USERPROFILE%\.config\opencode\skills\`)のスキルも見つけて使う | 「無い」と答えたら、共通 `AGENTS.md` の「スキルとエージェント」を強める |
 | [ ] 中身のあるフォルダ(プログラム・資料それぞれ)で `/init-project` | `check` の推奨を見て README などを読み、テンプレートを選ぶ。中身から埋め、分からないことだけを番号つきで質問する(画面で答えられる)。`plan` で下書きを見せる | 例の文で埋めたら、手順書を強める。質問の画面が出なければ、文で質問させる |
 | [ ] (0.23.0)`.sln`・`.csproj`・`.cs` のあるフォルダで `/init-project` | `check` が csharp を推奨する。`AGENTS.md` は csharp のテンプレートから作られ、`apply` の後に `.gitignore` へ `bin/`・`obj/`・`.vs/` が足される。`python-coding` の指示は入らない | 推奨が coding になる・`.gitignore` に足されないときは、手順書(SKILL.md)の 3 と 7 を強める |
@@ -274,7 +273,7 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 
 | 確認 | 期待する結果 | だめなとき |
 |---|---|---|
-| [ ] 会社側の `opencode.json` の `permissions` が、`sample_opencode.json`(0.16.0)と同じ | 反映された | 順序が大事([CHANGELOG.md](../CHANGELOG.md) の 0.16.0) |
+| [ ] 会社側の `opencode.json` の `permissions` が、今の `sample_opencode.json` と同じ | 反映された | 順序が大事(最後に一致したルールが勝つ。[CHANGELOG.md](../CHANGELOG.md) の 0.16.0) |
 | [ ] `/apps`(依頼なし) | `status` が確認なしで動き、5 つが「起動中」で版が出る | 「古い版」ならアプリを更新する。「接続できません」なら起動とポート(`config.local.json`) |
 | [ ] 「今週が期限のタスクは?」 | `tasks --due-within 7` が確認なしで動き、名前・最終日・残り日数で答える | 最終日が 1 日ずれていたら報告する([apps.md](apps.md) の 2 の日付の注意) |
 | [ ] 「テストのタスクを、明日から 3 日間で作って」 | 確認なしで `task-add …` が実行され、作られる(期間が 3 日、最終日を含む) | ガントの画面で、期間を目で確かめる |
@@ -311,7 +310,7 @@ MCP はやめた(0.30.0)。`browser` は、スキル `browser-session` の `run.
 | [ ] 送信のボタンを押すスクリプトを書かせる | `run` が「止めました」(終了コード 4)。人に確認を求め、承認の後に `--allow-submit` | 勝手に `--allow-submit` を付けたら、手順書と `AGENTS.md` を強める |
 | [ ] `/polish .handoff\テストの下書き.md` | `polish` が yomiyasu を読み込み、`run.bat lint` → `run.bat check run` → `verify` を動かし、`.handoff\polish_….md` を書く。数値・条件・出典が変わっていない | 要約版の手順書で足りるか(元の手順書の節を読みに行くか)。`--stdin` を使おうとしたら、手順を強める |
 | [ ] メインで「このメールの文を推敲して」(数段落の文) | メインが yomiyasu を読み込み、文を `.handoff/` に書いてから `lint` → `check run` → `verify`。確認なしで動く。長い文書のときは `polish` に任せる | 長い文書までメインで推敲したら、`AGENTS.md` と手順書の使い分けを強める |
-| [ ] スキル名を言わずに「〇〇の連絡先を教えて」(Vault にある内容) | 答える前に `finder` で探し、ノートを根拠に答える | 一般論で答えたら、`AGENTS.md` の「スキルとエージェントを先に使う」を強める |
+| [ ] スキル名を言わずに「〇〇の連絡先を教えて」(Vault にある内容) | 答える前に `file-finder` で探し、ノートを根拠に答える | 一般論で答えたら、`AGENTS.md` の「スキルとエージェントを先に使う」を強める |
 | [ ] `/grill-me 〇〇の手順書を作りたい` | 先に資料を調べ、「なぜ」から聞く。回ごとに番号つきの質問とおすすめ。`.handoff/interview_….md` が更新される。最後に `check` → まとめ → 確認を求め、それまで作業を始めない | 自分で答えて先へ進んだら、手順書の「守ること」を強める |
 
 ## 21. 登場人物(`people` / `/people`)

@@ -16,7 +16,7 @@ description: サブエージェント(agents/)を作る・直す手順(要否の
    - 互いに独立していて、並行して進められる調査
    - 権限を絞って、安全に任せたい作業
 
-   1〜2 ファイルを読むだけの作業や、ユーザーと確認しながら進める作業は、メインが自分でやる。すでにあるエージェント(`researcher`: 調査、`reviewer`: レビュー、`outlook`: メール・予定、`browser`: Web ページ、`finder`: ファイル検索)で足りないかも、先に確認する。
+   1〜2 ファイルを読むだけの作業や、ユーザーと確認しながら進める作業は、メインが自分でやる。すでにあるエージェント(`researcher`: 調査、`outlook`: メール・予定、`browser`: Web ページ、`polish`: 長い文書の推敲、`diagram`: 図)と、メインがスキルで行う方法(探すのは `file-finder`、レビューは Git の差分を読む)で足りないかも、先に確認する。
 2. **目的を 1 つに絞る。** 「何を調べて、何を返すか」を 1 文で書く。2 つ以上あるなら、エージェントを分ける。
 3. **frontmatter を書く。**
    - `description`: 必須。「どんなときにメインがこのエージェントを呼ぶか」と「何を返すか」を書く。メインは、これを見て呼ぶかどうかを決める。
@@ -65,17 +65,19 @@ permissions:
     resource: "*"
     effect: deny
   - action: shell
-    resource: "git status*"
+    resource: "git status *"
     effect: allow
   - action: shell
-    resource: "git diff*"
+    resource: "git diff *"
     effect: allow
   - action: shell
-    resource: "git log*"
+    resource: "git log *"
     effect: allow
 ```
 
-スクリプトを使うエージェント(スキルと `run.bat` を入口にする。`outlook`、`finder` が例):
+(`git diff*` のように空白なしで書くと、外部のツールを起動する `git difftool` にも一致する。末尾の ` *` は、引数なしにも一致する)
+
+スクリプトを使うエージェント(スキルと `run.bat` を入口にする。`outlook`、`researcher` が例):
 
 ```
 permissions:

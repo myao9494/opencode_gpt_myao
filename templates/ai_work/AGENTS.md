@@ -31,7 +31,7 @@
 | `launcher_slash_commands.sample.json` | ランチャーに登録するコマンドの例 | 触らない |
 | `output/` | 自動化が作ったファイル(取り込んだ表、報告など) | 自動化が書く。消さない |
 | `.handoff/` | 作業中の一時ファイル(ブラウザの段階ごとのスクリプトも) | 中身が残る前提にしない |
-| `.venv/` | このフォルダの Python | スキル `python-env` の手順で |
+| `.venv/` | このフォルダの Python | スキル `python-coding` の「仮想環境とパッケージ」で |
 
 ## 使うとき(実行)
 
@@ -59,14 +59,14 @@
 | Web の画面の操作(勤怠、社内システムへの入力・取り込み) | `browser-session` |
 | Outlook の予定の作成 / メールや予定を読むだけ | `outlook-mail` / `outlook` |
 | 計算・単位の換算 | `calc-check` |
-| Word・Excel・PDF を読む / ファイルを探す | `doc-convert` / `finder` |
+| Word・Excel・PDF を読む / ファイルを探す | `doc-convert` / `file-finder` |
 | タスク・ガント | `app-ecosystem` |
 | 何を自動化するかが決まらない | `interview` |
-| Python を書く / パッケージを足す | `python-coding` / `python-env` |
+| Python を書く / パッケージを足す | `python-coding` |
 
 ## 会社の PC で
 
 - `.bat` は ASCII だけで書く(日本語を入れない)。
-- Python は、このフォルダの `.venv`(無ければ `python`)。パッケージは、スキル `python-env` の手順で `requirements.in` に書いてから入れる。標準ライブラリで足りるなら使わない。
+- Python は、このフォルダの `.venv`(無ければ `python`)。パッケージは、スキル `python-coding` の「仮想環境とパッケージ」の手順で `requirements.in` に書いてから入れる。標準ライブラリで足りるなら使わない。
 - Node.js のパッケージ(`npm install`・`npx`)など、`pip` 以外のパッケージは入れない(会社の決まりで禁止)。
 - Git で管理しているなら、作る・直すの区切りでコミットを提案する(コミットは頼まれたときだけ)。

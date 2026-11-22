@@ -52,6 +52,8 @@
     {"action": "shell", "resource": "format *", "effect": "ask"},
     {"action": "shell", "resource": "Format-Volume*", "effect": "ask"},
     {"action": "shell", "resource": "Clear-Disk*", "effect": "ask"},
-    {"action": "shell", "resource": "diskpart*", "effect": "ask"}
+    {"action": "shell", "resource": "diskpart*", "effect": "ask"},
+    {"action": "shell", "resource": "obsidian delete *", "effect": "ask"},
+    {"action": "shell", "resource": "obsidian vault=* delete *", "effect": "ask"}
   ]
 }

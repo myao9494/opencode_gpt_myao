@@ -4,6 +4,85 @@
 
 myao-patch-bridge で運ぶと、Git の履歴は会社に届かない。このファイルが、会社側で「何が変わったか」「手で反映すること」を知る手がかりになる。変更したら、先頭に書き足す。
 
+## 1.1.1 (2026-11-22)
+
+**Obsidian 連携を、公式の Obsidian CLI に置き換えた(名前の変更・移動で、リンクが自動で直る)。** あわせて、Outlook のキャッシュと ID の引き方を直し、file-finder と people を必ず使う決まりにし、通しの試験で見つけた問題を直した。
+
+### 変更
+
+- **このハーネス(GPT-5.4 mini 版)だけを使う**(利用者の決定「Inkling-Small は使用しなくなるので、GPT5.4 ミニ版オンリーにしましょう」)。README の冒頭に書き、「今も社内 LLM を使う」と読める記述(`docs/apps.md`、`docs/outlook.md`、README の確かめていないこと、yomiyasu のテストの文)を直した。経緯の記録(README の 6.1〜6.37 など)は残した。
+- **Obsidian CLI(利用者の依頼「obsidian-cli にしましょう。導入方法をクイックスタートに入れる。obsidian-cli と被るものはスキルから削除。自動でリンクが変わる機能は必要。整理させたいので」):**
+  - スキル `obsidian-cli` を足した。公式の手順書(kepano/obsidian-skills、コミット `553ef99`、MIT)を `references/upstream-SKILL.md` に同梱し、手順書をハーネスの決まりで日本語に書き直した(開く、整理する、調べる、プラグインのコマンドの実行)。
+  - **整理(名前の変更・移動)は、CLI の `rename`・`move` だけで行う。** 最初に `.obsidian/app.json` の `alwaysUpdateLinks` を確かめ、前後で切れたリンク(`unresolved`)の数を比べ、報告する。承認は待たない。シェルの `move` では動かさない。
+  - 重なるものを削除: スキル `obsidian-run`(Local REST API)、子 `obsidian`、コマンド `/obsidian-run`、`vault-notes` の `tags`(`obsidian tags counts` に)。新規作成と本文の修正は、これまでどおり `vault-notes`。
+  - 削除・復元・プラグインの導入と削除・公開は使わない。`sample_opencode.json` に、`obsidian delete …` の確認(`ask`)を足した。
+  - `templates/obsidian/AGENTS.md`: 対応表、プラグインの実行・開く、添付ファイル、「名前の変更・移動・削除」の節(CLI で動かす。消さない)、`000_適宜移す` は頼まれたら整理してよい。
+  - 試し用の Vault で、本物の CLI を確かめて手順書に反映した: 失敗しても終了コードは 0(出力の `Error:` で見る)、移動先のフォルダは先に作る、無い名前の `open` はノートを作らない、Obsidian にメッセージが出ている間は CLI が止まる。
+  - `クイックスタート.md` に「7. Obsidian CLI を有効にする」を足し、Local REST API の設定・環境変数・証明書の行を外した(以降の節の番号が 1 つずれた)。`docs/obsidian.md` を書き直した。README の 6.40。
+
+- **メールのキャッシュ(`outlook_cache.py`):**
+  - `cache-sync --full` で、移動した後に Outlook で消したメールも、キャッシュから除く。除くのは、移動先のフォルダを見直したのに無かったものだけ。取り込みの対象の外(メールボックス直下のフォルダなど)へ移したメールは、確かめられないので残す。
+  - 取り込みのときに、既知のメールのフォルダが変わっていれば、場所を合わせる。
+  - `mail-move` / `mail-undo` の後は、EntryID だけでキャッシュの行を探して直す。ID を引けない行は飛ばし、ほかの行は直す。
+- **ID の引き方(`outlook_client.py`):**
+  - 一時フォルダの `ids.json` が消えても、メールのキャッシュにある短い ID なら、`mail-get`・`mail-move`・`reply-draft` に使える。
+  - 短い ID は EntryID の先頭 6 桁なので、別のメールと重なることがある。重なったら、取り違えないように止める(「複数あります」)。`cache-show` は、一覧で表示したメールを読み、重なる ID は対応表に書かない。
+  - キャッシュの場所は、`mailcache_path()` の 1 か所で決める。
+- **`agents/outlook.md`:**
+  - `people` の拒否(`new`・`set`・`memo`)を、`run.bat` の直後の語だけにした。`who` の引数(アドレスや語)に `new` などが入っても、拒否しない。
+  - 返信の下書きでは、`who --self` で自分のノートも引く。
+  - 説明文を「メールの整理はそのまま移動」にした。
+- **`agents/reviewer.md`:** Git の許可を `git diff*` などから `git diff *` などにした(末尾の ` *` は引数なしにも一致)。`git diff*` は、外部のツールを起動する `git difftool` にも一致していた。
+- **共通 `AGENTS.md`(利用者の依頼「コード以外のタスクは、必ず file-finder で前提知識を得てから。人が出たら必ず people で引く。未登録の人はインタビューして登録」):**
+  - file-finder で探すのを、質問だけでなく作業の依頼(要約・照合・図・推敲・レビュー・ノート作り)にも広げ、`grep`・`glob` で代えないと書いた。無料モデルでの通しの試験で、作業の依頼では file-finder を使わず grep で済ませていたため。
+  - 「依頼や読んだ資料に人が出たら、`people` の `who` で必ず引く(人物ノートを直接読まない)。無い人は、答えた後に聞いて登録する」を足した。2,720 → 2,910 文字(上限 2,950)。
+  - 「キー・トークンの値を、`echo`・`printf`・`env` などで表示しない」「依頼に関係の無い場所(ホームの設定、ほかのプロジェクト)を探し回らない」を足した。Obsidian の通しの試験で、モデルが別のハーネスの設定を探し回り、環境変数の API キーを `printf` で表示したため。2,993 文字(上限 3,000)。
+- **スキル `people`:** 「ほかの作業で人が出たとき」の節を足した(答える前に `who`。未登録の人は、答えた後に 1 人 3 問・3 人まで聞き、承認を待たずに `new … --checked` で登録。Vault が無いときは、止めずに「未確認」に書く)。
+- **コマンド `/people`:** 「保存する前に承認を得る」を、「答えをもらったら、承認を待たずに保存し、報告する」に直した(スキルと食い違っていた)。
+- **スキル `file-finder`:** `99_knowledge/` のノートを「AI のまとめ (未レビュー)」にしない(`vault-notes` と同じ扱い)。試験で、教えてもらって保存した知識が、次の検索で根拠から外れたため。
+- **スキル `doc-convert`:** スキルのフォルダに `cd` して実行すると、作業フォルダのファイルが「読んでよい場所の外」になる。手順書に「`cd` しない」と書き、エラーに作業フォルダのパスと戻り方を出す。試験で、モデルがこれで何度も迷ったため。
+- **スキル `yomiyasu`:** 「元の文書は書き換えない」を太字にし、最終稿の場所を報告する、と足した。試験で、メインが下書きを上書きしたため。スキルのフォルダで `check` を実行したら、記録を作らずに止める(試験で、モデルが `cd` して実行し、検査の記録がハーネスの `skills/yomiyasu/.handoff/` にたまった。リンクで置いた環境では、リポジトリの中になる)。
+- **文書:** `docs/outlook.md`・`docs/company-checklist.md`・`docs/people.md`・`skills/outlook-mail/SKILL.md` を、確認なしの運用(0.31.0)に合わせた。
+- **テスト:** 上の動き。権限の判定の写しは、`'` で囲んだパターンも読む。
+- **全体を簡単にした(利用者の依頼「よりシンプルにできるところがないか。AGENTS.md も簡略化できないか」):**
+  - 共通 `AGENTS.md` を 2,993 → 1,905 文字にした(決まりの中身は変えず、言い回しの重複を削った。節を「基本・事実・探す/人/知識・スキルと子・変更と実行・機密」に並べ直した)。上限 2,000。
+  - 子 `finder` と `reviewer` をやめた(探すのとレビューはメインが行う。共通ルールの「任せる作業」にも入っていなかった)。自作の子は 5 つ。
+  - スキル `python-env` を `python-coding` の「仮想環境とパッケージ」に、`meeting-notes` を `vault-notes` の「議事録を作る」に統合した(`/meeting-notes` は残した)。スキルは 19 個。
+  - `agents/outlook.md` の Outlook のスクリプトの許可を、サブコマンドごとの 15 行から 1 行(`*outlook-mail*run.bat*`)にした(同じ効果)。
+  - 子の「結果の返し方」(原本 `skills/create-subagent/handoff-block.md`)を、約 680 → 374 文字にした(返答の形は同じ)。
+  - README の前提の表とクイックスタート・確認の一覧の「インターネットを使える」「Web で調べて」を、共通 `AGENTS.md` の「インターネット検索は使えない」「`npm` は禁止」に合わせた。
+  - 説明文の合計は 3,057 → 約 2,700 文字(上限 2,800)。
+- **指示のつながり・矛盾・冗長を点検した(利用者の依頼「細かい所まで。矛盾や冗長な所がないか、指示がちゃんとつながっているか」):** 節の参照(「スキル `x` の『節』」「下の『節』」)はすべて実在した。直したもの: `vault-notes` の知識ノートの「上の手順 4」と、`obsidian-cli` の「`vault-notes` の手順 4」(どの節の手順 4 か分からない → 「新しいノートを保存する」の手順 4)、子 `outlook` の「移動の結果は必ずファイルに書く」(→ 共通の「結果の返し方」どおり、長いときだけ)、共通 `AGENTS.md` の「長い PDF」(→ ほかと同じ「10 ページを超える PDF」)、子 `browser` に「1 回に 1 つのコマンド」の段落を足した(ほかの 4 つの子と同じ)、子 `researcher` に、使えない共通ルール(`who`、知識ノートの保存)はメインが行う、の注記を足し、ほかの子の注記にも「知識ノートに保存する」を足した。同じ文が一つのファイルに 2 回出る所は無かった。
+  - テストを 2 つ足した: 「子は共通ルールとのつながりを書いている」(注記と、「1 回に 1 つのコマンド」の段落)、「節の参照は実在の見出しを指す」。わざと崩した一時ファイルで、両方が止まることを確かめた。
+- **決まりごとに横断して照らした(利用者の依頼「再度完璧になるまで繰り返して」):** 削除・移動・名前の変更、日付、子に任せる基準、AI のノート、Web と導入、聞き返しと承認の 6 つの軸で、モデルが読む全ファイルを照らした。
+  - **共通 `AGENTS.md` を縮めたときに抜けた決まりを戻した:** 確かめたことと推測を区別する、どのスキルを使うかはプロジェクトの `AGENTS.md` に従う(無ければ一覧の説明から)、語の定義(人・案件・用語・略称)、調べられない最新の情報は「調べられない」と答える、文書の変換は自分でしてよい(数百行で足りるなら自分で読む)、画像は見えたことだけを書く。元の版の決まりの要点 70 語ほどで照らし、抜けはゼロ(2,113 文字。上限 2,150)。要点が消えたら止まるテストを足した。
+  - `/summarize`: Office の文書は大きさに関係なく `researcher` に任せる、を、共通ルールどおり「変換して数百行で足りるなら自分で読む」にした。
+  - 子 `outlook`: 「最近」を日付に直すときに推測しないよう、`cache-status`(最終の取り込みの日時)を基準にする、と書いた(この子は `today` を使えない)。
+  - Vault 用の雛形: 新しいノートの置き場所を「指定が無ければ質問する」から、`vault-notes` どおり「今日のフォルダーに作る」にした。
+  - `outlook-mail`: `.venv` の作り方を、`python-coding` の手順(`--require-hashes`)に合わせた。
+  - 説明文: `file-finder` を「入力を受けたら毎回使う」、`people` を「人が出たら必ず引く」に広げた(共通ルールより狭く、読み込まれない場面があり得た)。
+  - 人が読む文書: 確認の一覧の `/summarize`(子で動く → メインで動く)、`docs/operations.md` の修正の流れ(承認の段階を外した)、README と `docs/operations.md` の `/summarize` の任せ方、確認の一覧の `/fix-note` と `docs/operations.md` の Outlook の整理に残っていた「承認」の段階を、今の動きに合わせた。
+  - 確認の一覧と `docs/operations.md` の権限の記述を、今の雛形とテストの判定で照らして直した: `type .env`(確認が出る → 確認なし)、`browser` の `--allow-submit`(拒否 → 許可)、`/diagram`(確認が出る → 確認なし)、`curl`(拒否 → 雛形は止めず、指示で使わない)、`pip install` の `ask`(雛形に無い)、権限を比べる相手の版(0.16.0 → 今の版)。
+- **スキルの手順書を全文で読み直した(利用者の依頼「15 のスキルの手順書を全文で読み直して」。今日書き換えたものも含め、全 19 個):** 直したもの: `app-ecosystem` の「ノートの名前は人が変える(ハーネスは変えない)」(→ `obsidian-cli` の `rename`)、`create-subagent` の権限の雛形の `git diff*`(→ `git diff *`。`git difftool` にも一致していた)、`excalidraw-diagram` の「対象・種類・範囲が曖昧なら質問」(→ 内容が分からないときだけ。子 `diagram` と同じ)、`/handoff-clean` の `sweep --dry-run`(スキルの「要らない」と食い違い)、`file-finder` の AI のまとめの説明に `99_knowledge/` の扱い、`people` の前提の「Vault が無ければ止める」に、ほかの作業の途中は止めない例外、`outlook-mail` の「期間を広げる」を、後の節の「頼まれたときだけ」に合わせた。
+- **静的な点検を、問題が出なくなるまで繰り返した(利用者の依頼「バッチリになるまで、繰り返して」):** コマンド 15 個と子 5 つを全文で読み、形・参照・節番号・古い前提・聞き返しの書き方を機械で調べ直した。直したもの: `/meeting-notes` の「推測して進めてよいか確認」、`outlook` の「人物メモの案はメインがユーザーに聞く」(→ そのまま保存)、`researcher` の `99_knowledge/` の例外の抜けと探す順(→ まず `file-finder`)、`docs/people.md` のあいまいな 1 行、Vault 用の雛形の `npm install`、`python-coding` の「社内の小さいモデル」、統合したスキルの見出しの「元のスキル」、README の古い数とスキル表、共通 `AGENTS.md` の NuGet の扱い(C# はプロジェクトの `AGENTS.md` に従う。1,942 文字)。
+  - テストを 2 つ足した: 「モデルが読むファイルは実在の部品だけを指す」(外した・統合した名前が残っていないことも)、「文書の節と版の参照は実在する」(README の 6.x、クイックスタート、確認の一覧、`docs/obsidian.md`、CHANGELOG)。わざと古い名前と無い節を書いたファイルで、両方が止まることを確かめた。
+- **全体の点検(モデルを動かさずに、2026-11-22):** リンク・スキル・子・コマンド・サブコマンドの参照は、すべて実在した。外した `vault-notes` の `tags` を指す文が 3 か所に残っていたので、`obsidian tags counts` に直した(`templates/obsidian/AGENTS.md`、`skills/app-ecosystem/SKILL.md`、`skills/vault-notes/SKILL.md`)。雛形(`templates/obsidian/AGENTS.md`、`templates/project/document/AGENTS.md`)の「file-finder で先に探す」「人は `who` で引く」を、共通 `AGENTS.md` と同じ範囲(作業の依頼も、資料に出た人も)にした。file-finder を使えない子(`diagram`・`polish`・`reviewer`・`browser`・`outlook`)に、「それはメインが行う」と 1 行足した(共通ルールに従って、断られる道具を試さないように)。
+- **静的な点検の追加(2026-11-23):** 手順書・子・コマンド・文書・雛形にある `obsidian …` の例を、CLI 1.15.1 の `obsidian help <コマンド>` と照合した(コマンドも引数も、すべて実在)。`run.bat`・`run.sh` の例のオプションも、各サブコマンドの `--help` と照合した(すべて実在)。JSON と Python の例は、すべて文法どおりだった。README の「共通 `AGENTS.md` の `.venv\Scripts\python`」は、共通ルールに無くなっていたので、`python-coding` と `templates/project/coding/AGENTS.md` を指すように直した。テストを 3 つ足した: JSON・Python の例の文法、Obsidian CLI の例が確かめたコマンドだけを使うこと、現在の手順に消した部品(`obsidian-run`、`python-env`、子 `finder`・`reviewer`、`OBSIDIAN_API_KEY`)が出てこないこと。
+
+### 手で行うこと
+
+- パッチで消えたスキル・子(`obsidian-run`、`python-env`、`meeting-notes`、`agents/finder.md`、`agents/reviewer.md`)が `$cfg` に残っていたら、消す(myao-patch-bridge で削除が届かないとき)。
+- **元のハーネスを使っていた PC は、このハーネスに切り替える。** `$cfg` に元のハーネスのファイル(または部品ごとのリンク)があれば、このハーネスのもので置き換え、`opencode.json` を `sample_opencode.json` から作り直す([クイックスタート.md](クイックスタート.md) の 1・3。Mac は 10)。Azure の接続(5)が要る。
+- `sample_opencode.json` を `opencode.json` にコピーし直す(`obsidian delete` の確認を足した)。
+- Obsidian を使うなら、[クイックスタート.md](クイックスタート.md) の 7(インストーラー 1.12.7 以降、CLI を有効に、「Automatically update internal links」を有効に、PowerShell と OpenCode を起動し直す、`obsidian version`)。
+- 会社の Vault の `AGENTS.md` を、`templates/obsidian/AGENTS.md` から更新する(整理・名前の変更・移動の節)。
+- 以前の Local REST API の準備(プラグイン、環境変数 `OBSIDIAN_API_KEY`、`skills\obsidian-run\` に置いた `config.local.json` と CA 証明書)は、もう使わない。ほかで使っていなければ片付ける(パッチでは、`skills\obsidian-run\` の Git の管理外のファイルは消えない)。
+
+### 確かめていないこと
+
+- 会社の Outlook での動き(Mac では偽の Outlook で試した)。
+- Windows での Obsidian CLI(`Obsidian.com` を OpenCode から呼べるか)と、プラグインのコマンドの実行。自宅の Mac(1.15.1)では、試し用の Vault で、`rename`・`move` でリンクと埋め込みが直ること、opencode での整理と、削除を断ることを確かめた([docs/obsidian.md](docs/obsidian.md) の 8)。
+
 ## 1.1.0 (2026-11-17)
 
 **総トークン数を減らす方針にした**(利用者の依頼「総トークン数を削減する方がいい。無理にサブエージェントを使う必要はない。ただ、超絶に重いもの(画像や Microsoft Office の解析など)は分ける」)。経緯は [README.md](README.md) の 6.39。

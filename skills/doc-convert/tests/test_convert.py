@@ -561,6 +561,15 @@ class CliTests(Base):
         self.assertEqual(names, ["報告書.docx.md", "報告書.docx_2.md", "報告書.docx_3.md"])
         self.assertIn("報告書.docx_3.md", out)
 
+    def test_スキルのフォルダで実行したら_戻り方を示す(self) -> None:
+        # 1.1.1: 通しの試験で、モデルがスキルのフォルダに cd してから実行し、作業フォルダのファイルが外になって何度も迷った
+        target = make_docx(self.work / "報告.docx", para("本文"))
+        skill_dir = Path(cli.__file__).resolve().parent.parent
+        with self.assertRaises(cli.ScopeError) as caught:
+            cli.check_input(str(target), skill_dir, [])
+        self.assertIn("cd していたら", str(caught.exception))
+        self.assertIn(str(skill_dir), str(caught.exception))
+
     def test_作業フォルダの外は読めない_rootsにあれば読める(self) -> None:
         outside = self.tmp / "other"
         outside.mkdir()
