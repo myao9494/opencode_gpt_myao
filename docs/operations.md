@@ -105,6 +105,7 @@ PyPI へ直接つなぐ間は、悪意のあるパッケージや、似た名前
 | `commands/summarize.md` | 1.1.0 からメインで動く。Office は変換して、数百行で足りるなら自分で読む。重いファイル(1,000 行超、10 ページ超の PDF、画像 4 枚以上、大きな Office の文書)だけ `researcher` に任せる |
 | `skills/handoff-clean/`、`commands/handoff-clean.md` | `.handoff/` の古いファイルを、`_trash` へ退避する(削除はしない)。メインが、一覧を見せて承認を得てから行う。サブエージェントには持たせない |
 | `skills/create-subagent/` | 新しいサブエージェントを作る手順と、返し方の約束の原本(`handoff-block.md`) |
+| `skills/skill-creator/` | 新しいスキルを作る・直す・試す手順(Anthropic の skill-creator を日本語で短くしたもの)。雛形を置く `init` と、点検の `check`。メインが行う |
 | `skills/project-init/`、`commands/init-project.md` | プロジェクトのフォルダに、`AGENTS.md`(汎用テンプレートから)、`.handoff/`、`.gitignore` の行を置く。上書き・削除はしない。`.git` が無ければ `git init` も行う(コミットはしない)。メインが行い、`apply` と `git init` は承認の後([docs/project-init.md](project-init.md)) |
 | `skills/app-ecosystem/`、`commands/apps.md` | 自作の Web アプリ(ガント・ファイルマネージャー・差分・Excalidraw・全文検索)を、各アプリの共通の入口(エコシステム API 1)で使う。読み取りも書き込みも、確認なし(0.31.0)。削除・コマンドの実行は持たない。出力が小さいので、メインが行う([docs/apps.md](apps.md)) |
 | `agents/polish.md` + スキル `yomiyasu`(同梱)、`commands/polish.md` | AI が書いた日本語の文書を、意味を変えずに推敲する。手順書は約 4,500 文字の要約版(元の約 4.3 万文字は `references/upstream-SKILL.md`)。短い文はメインで、長い文書やファイルは子セッションで推敲する(メインには最終稿のパスと要点だけが戻る)(`skills/yomiyasu/VENDOR.md`) |

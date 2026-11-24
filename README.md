@@ -68,6 +68,7 @@
 | 名前 | 内容 |
 |---|---|
 | `create-subagent` | サブエージェントを作る手順(要否の判断、権限の雛形、動作確認)と、返し方の原本 |
+| `skill-creator` | **スキルを作る・直す・試す**(Anthropic の [skill-creator](https://github.com/anthropics/skills)(Apache 2.0)の手順書を `references/upstream-SKILL.md` に同梱し、このハーネス向けに日本語で短く書き直した)。会話のやり方を拾う → 雛形(`init`。`--script` で `run.bat`・`run.sh`・`scripts/`・`tests/` も。同名は上書きしない)→ 説明文と本文 → 点検(`check`。名前、説明文の長さ、雛形の書き残し、指すファイル、`run.bat`・`run.sh` の形)→ 2〜3 の依頼で自分で試す → 直す。置き場所は、ハーネスでは `skills/`、ほかでは `.opencode/skills/`。元の、子での並行の試験・`claude -p` での説明文の最適化・ビューアーは使わない |
 | `outlook-mail` | Outlook の操作(スクリプト)。受信と送信のメールのキャッシュ(SQLite)。**送信と削除はできない** |
 | `file-finder` | ファイル検索と、見つけたテキストの読み取り(スクリプト)。**読み取り専用。対象は設定のフォルダだけ** |
 | `doc-convert` | Word・Excel・PowerPoint・PDF・CSV を Markdown に変換する(スクリプト)。**読み取り専用。書くのは `.handoff/converted/` だけ** |
@@ -246,8 +247,8 @@ opencode debug config
 #    内蔵プラグインの初期化中なので 10〜15 秒待ってからもう一度実行する
 opencode debug agents
 
-# 3. run.bat がある 15 スキルの起動確認 (すべて exit=0 になること)
-#    スキルは全部で 19 個。create-subagent、memory、obsidian-cli、python-coding の 4 個には run.bat がない
+# 3. run.bat がある 16 スキルの起動確認 (すべて exit=0 になること)
+#    スキルは全部で 20 個。create-subagent、memory、obsidian-cli、python-coding の 4 個には run.bat がない
 $cfg = "$env:USERPROFILE\.config\opencode"
 foreach ($bat in Get-ChildItem "$cfg\skills\*\run.bat") {
     $out = & $bat.FullName --help 2>&1
@@ -264,7 +265,7 @@ obsidian version   # Obsidian を使うとき (クイックスタートの 7)
 & "$cfg\skills\app-ecosystem\run.bat" status
 & "$cfg\skills\browser-session\run.bat" status
 
-# 5. ハーネス全体のテスト実行 (全 19 スイート・682 テスト。AI_work のひな形のスキルを含む)
+# 5. ハーネス全体のテスト実行 (全 19 スイート・662 テスト。AI_work のひな形のスキルを含む)
 #    相対パスで動かすので、ハーネスのフォルダに移ってから実行する (B の場合は、$cfg ではなくリポジトリのルートへ移る)
 Set-Location $cfg
 .\.venv\Scripts\python.exe run_tests.py
@@ -282,7 +283,7 @@ Set-Location $cfg
 - **Google の AI Pro などのサブスクリプションでのログインも、使わない。** OpenCode のプラグインでログインして、有料契約者のアカウントが停止された報告がある([Google AI Developers Forum](https://discuss.ai.google.dev/t/paid-pro-subscriber-banned-instantly-for-testing-opencode-oauth/124403) ほか。Google の規約の原文は未確認)。Gemini を使うなら、AI Studio の API キー(無料枠あり)。ただし無料枠は、Google の製品改善に使われ、人が読む場合がある。制限の数値は、資料ごとに食い違うので、AI Studio の画面で確認する。
 - **`opencode.json`:** `sample_opencode.json` をコピーして、`~/.config/opencode/opencode.json` に置く(リポジトリには入れない)。`mcp` の項目は無い(MCP は使わない)。モデルの `limit` は、雛形に書いてある([docs/operations.md](docs/operations.md) の 5.4)。
 - **起動スクリプト:** Windows は `run.bat`、**Mac・Linux は `run.sh`**(引数は同じ。標準ライブラリだけ。ハーネスの `.venv/bin/python` があればそれを、なければ `python3` を使う)。各スキルの手順書は、両方を案内している。許可のパターンも、`run.bat` と `run.sh` の両方がある(`sample_opencode.json` と、`researcher`・`diagram` など、スクリプトを使う子)。実行権限(`chmod +x`)は付けてある。付いていなければ、`sh skills/<スキル>/run.sh …` でよい。
-- **`run.sh` があるスキル(14 個):** `doc-convert`、`vault-notes`、`diagram-reader`、`excalidraw-diagram`、`project-init`、`handoff-clean`、`app-ecosystem`、`browser-session`、`calc-check`、`doc-writing`、`interview`、`people`、`yomiyasu`、`file-finder`(**Mac では全文検索の `content` だけ**。Everything の `names` は Windows 専用)。**`run.sh` が無いのは、Windows 専用の `outlook-mail`(COM)。** 整合性テストが、`run.sh` の形(ASCII、LF、`exec`、実行権限)、`run.bat` と同じスクリプトを呼ぶこと、許可パターンが `run.bat` と同じ効果であること、実際に動くこと(リンク経由も)を検査する。
+- **`run.sh` があるスキル(15 個):** `doc-convert`、`vault-notes`、`diagram-reader`、`excalidraw-diagram`、`project-init`、`handoff-clean`、`app-ecosystem`、`browser-session`、`calc-check`、`doc-writing`、`interview`、`people`、`yomiyasu`、`skill-creator`、`file-finder`(**Mac では全文検索の `content` だけ**。Everything の `names` は Windows 専用)。**`run.sh` が無いのは、Windows 専用の `outlook-mail`(COM)。** 整合性テストが、`run.sh` の形(ASCII、LF、`exec`、実行権限)、`run.bat` と同じスクリプトを呼ぶこと、許可パターンが `run.bat` と同じ効果であること、実際に動くこと(リンク経由も)を検査する。
 - **Windows 前提の書き方:** スキル `python-coding` とテンプレート `templates/project/coding/AGENTS.md` の `.venv\Scripts\python` は、会社の環境(Windows)に合わせた書き方。Mac では `.venv/bin/python`(どちらにも、Mac の書き方を併記してある)。
 - **Mac では試せないもの:** Outlook(`outlook-mail`。COM は Windows 専用)、ファイル名の検索(`file-finder` の `names`。Everything は Windows 専用)、会社の Edge でのブラウザ操作(`browser-session`。Mac では Chrome で試せる)。**この 3 つは、会社の Windows でだけ確認する。** 全文検索(`file-finder` の `content`)は、Mac でも Local-fulltext-search で試せる(`skills/file-finder/config.local.json` を作る)。
 - **Mac で試せるもの:** 共通ルールと `CLAUDE.md` の読み込み、サブエージェントの分離(`researcher` など)、コマンド(`/summarize`、`/init-project` など)、`run.sh` のあるスキル。同じ Azure の GPT-5.4 mini につなげば、モデルは会社と同じになる(デプロイの設定や、コンテンツ フィルターの違いは残る)。

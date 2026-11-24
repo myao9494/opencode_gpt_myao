@@ -10,6 +10,7 @@ myao-patch-bridge で運ぶと、Git の履歴は会社に届かない。この�
 
 ### 変更
 
+- **スキル `skill-creator` を足した(2026-11-25。利用者の依頼「有名なスキルクリエイターのスキルを参照してもらって入れてほしい」):** Anthropic の skill-creator(`claude-plugins-official` の写し。Apache 2.0)の手順書を `references/upstream-SKILL.md`、ライセンスを `references/LICENSE.txt` に同梱し、手順書をこのハーネス向けに日本語で短く書き直した(作る・書き方・試す・直す)。書き方の節には、今回の試験で GPT-5.4 mini が誤った点(失敗したときの手順が無いと探し回る、引き金の言葉が無いと頼まれていない保存をする、コマンドの例が無いと推測する)を入れた。スクリプト `init`(雛形を置く。`--script` で `run.bat`・`run.sh`・`scripts/`・`tests/` も。同名は上書きしない。置き場所はハーネスでは `skills/`、ほかでは `.opencode/skills/`)と `check`(名前とフォルダ名、説明文の長さ、雛形の書き残し、本文が指すファイル、`run.bat`・`run.sh` の ASCII・LF・実行権限・同じスクリプト)。元の、子での並行の試験・`claude -p` での説明文の最適化・結果のビューアーは、この環境では動かない・重いので入れていない。コマンドは足していない(説明文の合計が上限 2,800 に近い。現在 2,775 文字)。テスト 13 件。**未確認:** 実際のモデル(無料の利用枠の上限のため)、会社の Windows での `run.bat`。
 - **このハーネス(GPT-5.4 mini 版)だけを使う**(利用者の決定「Inkling-Small は使用しなくなるので、GPT5.4 ミニ版オンリーにしましょう」)。README の冒頭に書き、「今も社内 LLM を使う」と読める記述(`docs/apps.md`、`docs/outlook.md`、README の確かめていないこと、yomiyasu のテストの文)を直した。経緯の記録(README の 6.1〜6.37 など)は残した。
 - **Obsidian CLI(利用者の依頼「obsidian-cli にしましょう。導入方法をクイックスタートに入れる。obsidian-cli と被るものはスキルから削除。自動でリンクが変わる機能は必要。整理させたいので」):**
   - スキル `obsidian-cli` を足した。公式の手順書(kepano/obsidian-skills、コミット `553ef99`、MIT)を `references/upstream-SKILL.md` に同梱し、手順書をハーネスの決まりで日本語に書き直した(開く、整理する、調べる、プラグインのコマンドの実行)。
