@@ -6,7 +6,7 @@ description: プロジェクトのフォルダに AGENTS.md・.handoff/・.gitig
 ## 前提
 
 - 対象は、プログラム(Python、C#)・設計計算・解析のプロジェクトと、手順書・報告書などの一般資料のフォルダ。**Git で管理する前提**。Obsidian の Vault には使わない(Vault は人間が配置する)。
-- 実行: `<スキルのフォルダ>\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。スキルのフォルダは、読み込んだときに示される。
+- 実行: 作業フォルダのまま `<スキルのフォルダ>\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。
 - テンプレートは 3 つ。
   - `coding`: プログラム・設計計算・解析。Python が中心(`python-coding` を必ず読ませる、テスト駆動、コマンド、計算・解析の決まり、会社の PC の言語の制約)
   - `csharp`: C# (.NET) のプログラム(C# の書き方の決まり、`dotnet` のコマンド、`bin/`・`obj/` を Git に入れない、NuGet と SDK の確認、計算・解析の決まり)

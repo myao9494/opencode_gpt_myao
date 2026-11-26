@@ -7,7 +7,7 @@ description: Excalidraw の図を、仕様から作る(フロー図・スイム�
 
 - 図は Obsidian の Excalidraw プラグインの形式(`.excalidraw.md`)。標準の `.excalidraw` も作れる。
 - 図を**読む**ときは、スキル `diagram-reader` の `describe` を使う(Excalidraw にも draw.io にも使える。構造のデータから読むので、矢印のつながりが正確)。作った図を読み戻して確かめるときも、同じ。`.excalidraw.md` は画像ではないので、`read` で開いても、見た目は分からない(見た目の最終確認は、人が Obsidian で行う)。このスキルは、作ることと、点検だけ。
-- 実行: `<スキルのフォルダ>\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。スキルのフォルダは、読み込んだときに示される。
+- 実行: 作業フォルダのまま `<スキルのフォルダ>\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。
 - Vault は、いまのフォルダから上へたどって見つかる `.obsidian` のあるフォルダ。読めるのは、いまのフォルダと Vault の中だけ。書き込むのは `build` の出力だけ(Vault の中で、ドットで始まらない場所)。**削除はしない。**
 
 ## 守ること

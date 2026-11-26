@@ -5,7 +5,7 @@ description: ローカルの資料を、中身(全文検索)と名前(Everything
 
 ## 前提
 
-- 実行: `<スキルのフォルダ>\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。スキルのフォルダは、読み込んだときに示される。`.venv` が無いと出たら、止めて報告する。
+- 実行: 作業フォルダのまま `<スキルのフォルダ>\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。`.venv` が無いと出たら、止めて報告する。
 - 探せる・読めるのは、設定(`config.local.json`)の `roots` のフォルダだけ。外は拒否される。回避しない。
 - **読み取り専用。**
 - Mac では `content` と `read` だけが動く(`names` の Everything は Windows 専用)。

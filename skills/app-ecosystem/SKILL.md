@@ -15,7 +15,7 @@ description: 自作の Web アプリ(ガント・ファイルマネージャー�
   | `draw` | Excalidraw | `127.0.0.1:3001` | 図を開く URL(図を読むのは `diagram-reader`、作るのは `excalidraw-diagram`) |
   | `search` | 全文検索 | `127.0.0.1:8079` | 人が開く検索画面の URL(ファイルを探すのは `file-finder`) |
 
-- 実行: `<スキルのフォルダ>\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。スキルのフォルダは、読み込んだときに示される。
+- 実行: 作業フォルダのまま `<スキルのフォルダ>\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。
 - 呼ぶ先は、この PC(`127.0.0.1` / `localhost`)だけ。ポートを変えるときは `config.local.json`(`config.sample.json` をコピー)。
 - **できないこと:** 削除、コマンドの実行、OS のアプリを起動すること。必要なら、人に URL を渡して、人が画面で行う。
 

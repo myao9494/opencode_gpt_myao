@@ -7,7 +7,7 @@ description: Word・Excel・PowerPoint・PDF・CSV を Markdown に変換して 
 
 - 対応: `.docx` `.xlsx` `.pptx`(マクロつきの `.docm` `.xlsm` `.pptm` も)、`.pdf`、`.csv` `.tsv`。
 - 古い形式(`.doc` `.xls` `.ppt`)は未対応。Office で開いて、新しい形式で保存し直してもらう(依頼者に伝える)。
-- 実行: `<スキルのフォルダ>\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。スキルのフォルダは、読み込んだときに示される。
+- 実行: 作業フォルダのまま `<スキルのフォルダ>\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。
 - 実行は、必ず `run.bat` を通す。`.venv` が無いというエラーが出たら、作業を止めて、そのまま報告する。
 - **読み取り専用。** 元のファイルは変更しない。書くのは、作業フォルダの `.handoff/converted/` だけ。
 

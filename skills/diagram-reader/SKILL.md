@@ -9,7 +9,7 @@ description: 図(Excalidraw・draw.io)を、構造のデータから文章(ま�
 - この環境の LLM は、画像を見られる。**画像(PNG・JPEG・GIF・WebP)の図は、`read` で開いて見る**(このスキルのスクリプトは使わない)。見て読み取れない小さな文字や、あいまいな矢印は、未確認と書く。
 - 読める形式: Excalidraw(`.excalidraw.md`、`.excalidraw`。圧縮されたものも)、draw.io(`.drawio`、`.dio`、`.drawio.svg`、`.dio.svg`。圧縮されたもの、複数ページも)。形式は、自動で判断される。
 - **`describe` で読めないもの:** 画像(PNG、JPEG)の図、`.drawio.png`、図の中に貼られた画像と手書き(「中身は読めません」と出る)。画像のファイルがあるものは、`read` で開いて見る。
-- 実行: `<スキルのフォルダ>\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。スキルのフォルダは、読み込んだときに示される。
+- 実行: 作業フォルダのまま `<スキルのフォルダ>\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。
 - **読み取り専用。** 読めるのは、いまのフォルダと Vault の中だけ。書くのは `--out`(`.handoff/` の中だけ)。図は変更しない。
 
 ## 使い方

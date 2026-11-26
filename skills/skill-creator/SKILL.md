@@ -7,10 +7,10 @@ Anthropic の skill-creator(元の手順書は `references/upstream-SKILL.md`。
 
 ## 前提
 
-- 実行: `<スキルのフォルダ>\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。スキルのフォルダは、読み込んだときに示される。作業フォルダから、フルパスで実行する。
+- 実行: 作業フォルダのまま `<スキルのフォルダ>\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。
 - スキルは、フォルダ 1 つ。`SKILL.md`(必須。先頭の frontmatter に `name` と `description`)と、必要なら `scripts/`(決まった処理。Python の標準ライブラリで)、`tests/`、`references/`(長い資料)、`run.bat`・`run.sh`(スクリプトの入口)。
 - **読まれ方:** `name` と `description` は、毎回すべての会話で読まれる。本文は、モデルが使うと決めたときだけ。`references/` は、本文が指したときだけ。だから、説明文は短く、本文は要点だけ、細部は `references/` に分ける。
-- 置き場所: このハーネスのリポジトリ(`skills/`・`agents/`・`AGENTS.md` がある)なら `skills/<名前>/`。ほかのフォルダでは `.opencode/skills/<名前>/`(そのフォルダの中だけで使える)。`init` が自動で選ぶ。AI_work の自動化は、`automation-builder` の `new` で作る。
+- 置き場所: このハーネスのリポジトリ(`skills/`・`agents/`・`AGENTS.md` がある)なら `skills/<名前>/`。ほかのフォルダでは `.opencode/skills/<名前>/`(そのフォルダの中だけで使える)。`init` が自動で選ぶ。**このスキルが置かれている共通の設定のフォルダ(`skill_files` のパスの上、`.config/opencode`)には書かない**(すべての作業に効く本番の設定。人が写す)。AI_work の自動化は、`automation-builder` の `new` で作る。
 
 ## 守ること
 
@@ -33,7 +33,7 @@ Anthropic の skill-creator(元の手順書は `references/upstream-SKILL.md`。
    `--script` は、`run.bat`・`run.sh`・`scripts/`・`tests/` も置く(計算・変換・集計など、毎回同じ処理があるとき)。
 3. **`description` を書く。** 「何をするか」と「いつ使うか(言いそうな言葉を 2〜3 個)」を、80 文字くらいまで(説明文の合計に上限がある)。いつ使うかは、本文ではなくここに書く(本文は、使うと決めた後にしか読まれない)。
 4. **本文を書く**(下の「書き方」)。300 行まで。長い資料は `references/` に分け、本文に「〜のときだけ `references/〜.md` を読む」と書く。
-5. `--script` のときは、`scripts/` の処理と `tests/` を、スキル `python-coding` に従って書き、テストを通す(`python -m unittest discover -s <スキルのフォルダ>/tests`)。
+5. `--script` のときは、`scripts/` の処理と `tests/` を、スキル `python-coding` に従って書き、テストを通す(`python -m unittest discover -s <スキルのフォルダ>/tests`)。Word・Excel などは、スクリプトで直接開かず、手順に「先に `doc-convert` で変換し、できた `.md` をスクリプトに渡す」と書く(`openpyxl` などを探さない・入れない)。
 6. **点検する。** エラーが 0 件になるまで直す。ハーネスのリポジトリでは、`python run_tests.py` も通す(説明文の合計の上限なども見る)。
 
    ```
