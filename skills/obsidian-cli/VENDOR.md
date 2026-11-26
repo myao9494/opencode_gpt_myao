@@ -2,7 +2,7 @@
 
 公式の Obsidian CLI(`obsidian` コマンド)を使うスキル。**元の手順書は手を加えずに `references/upstream-SKILL.md` に置き、手順書(`SKILL.md`)だけを、ハーネスの決まりに合わせて日本語で書き直した。**
 
-- 出所: https://github.com/kepano/obsidian-skills の `skills/obsidian-cli/SKILL.md`(コミット `553ef99`、2026-05-24)。作者は Obsidian の CEO の Steph Ango(kepano)
+- 出所: https://github.com/obsidianmd/obsidian-skills の `plugins/obsidian/skills/obsidian-cli/SKILL.md`(コミット `48a7ca3`、2026-11-11。リポジトリの先頭は `79e85b7`、2026-11-25 に読んだ)。2026-11 に kepano/obsidian-skills から Obsidian の公式の組織へ移った。作者は Obsidian の CEO の Steph Ango(kepano)
 - ライセンス: MIT(`LICENSE`)
 - CLI 本体は Obsidian に入っている(インストーラー 1.12.7 以降。公式のヘルプ https://obsidian.md/help/cli 、2026-11-22 に読んだ)。スクリプトは同梱していない
 
@@ -23,5 +23,5 @@
 
 ```
 64c64d48361edfe8610016441bf593256ea9b67f133b00f47c55aa29ee878567  LICENSE
-b54257cdc0e5d04488b35b0c797bfe427b24359f0848d3c73924dcacf8da6358  references/upstream-SKILL.md
+28f66289b1cf1d245807766d4dafb6f5f76eadc986fe4a7f224da51f50aa7524  references/upstream-SKILL.md
 ```

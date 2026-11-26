@@ -73,7 +73,7 @@
 | `file-finder` | ファイル検索と、見つけたテキストの読み取り(スクリプト)。**読み取り専用。対象は設定のフォルダだけ** |
 | `doc-convert` | Word・Excel・PowerPoint・PDF・CSV を Markdown に変換する(スクリプト)。**読み取り専用。書くのは `.handoff/converted/` だけ** |
 | `vault-notes` | Obsidian のノートの保存(今日のフォルダーに新規作成)と修正(バックアップ → 最小の変更 → **`mark-edit` で「AI が直した・未レビュー」の印**)。日付・時刻は `today` で取る。人のレビューが済んでいない AI のノートと、印の付け忘れの疑いの一覧(`unreviewed`)。**削除はしない。Vault の中だけに書く**。**会議のメモを議事録にする手順**(`/meeting-notes`。1.1.1 で `meeting-notes` を統合) |
-| `obsidian-cli` | **公式の Obsidian CLI**(`obsidian` コマンド。kepano/obsidian-skills の手順書を同梱し、ハーネスの決まりで日本語に書き直した)。ノートを開く、**整理(名前の変更・移動。ほかのノートのリンクが自動で直る)**、バックリンク・切れたリンク・タグ・タスクを調べる、プラグインのコマンドの実行。新規作成と本文の修正は `vault-notes`。削除はしない。1.1.1 で、Local REST API の `obsidian-run` から置き換えた |
+| `obsidian-cli` | **公式の Obsidian CLI**(`obsidian` コマンド。Obsidian 公式の obsidianmd/obsidian-skills の手順書を同梱し、ハーネスの決まりで日本語に書き直した)。ノートを開く、**整理(名前の変更・移動。ほかのノートのリンクが自動で直る)**、バックリンク・切れたリンク・タグ・タスクを調べる、プラグインのコマンドの実行。新規作成と本文の修正は `vault-notes`。削除はしない。1.1.1 で、Local REST API の `obsidian-run` から置き換えた |
 | `excalidraw-diagram` | Excalidraw の図を、**仕様から作る**(`build`。フロー図・スイムレーン・ツリー・マインドマップ)、点検する(`check`)。LLM は仕様だけを書き、座標・矢印・日本語の幅はスクリプトが計算する |
 | `diagram-reader` | **図(Excalidraw・draw.io)を、構造のデータから文章(または Mermaid)にして、正確に読む**(`describe`。圧縮された図、複数ページも可)。ノートに埋め込まれた図の場所を探す(`links`)。読み取り専用。画像(PNG など)の図は、`read` で開いて見る |
 | `project-init` | **プロジェクトのフォルダの初期設定**(`check` / `draft` / `plan` / `apply`)。中身を見てテンプレート(coding / csharp / 一般資料)を選び、中身とインタビューの答えで `AGENTS.md` を埋めて置く。`.handoff/` と `.gitignore` の行も。上書き・削除はしない |
