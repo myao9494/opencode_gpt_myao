@@ -47,7 +47,7 @@ description: (ここに: 何をするか。いつ使うか(ユーザーが言い
 - (ここに: 出るエラーの文と、そのときにすること。探し回らず、止めて報告する、など)
 """
 
-RUN_LINE = "- 実行: `<スキルのフォルダ>\\run.bat`(Mac・Linux は `run.sh`。引数は同じ)。作業フォルダから、フルパスで実行する。使い方は `run.bat --help`。\n"
+RUN_LINE = "- 実行: 作業フォルダのまま `<スキルのフォルダ>\\run.bat 引数`(Mac・Linux は `run.sh`)。`cd` しない。使い方は `run.bat --help`。\n"
 
 RUN_BAT = """@echo off
 rem Run {module}.py. It needs only the standard library, so it works without the venv too.
@@ -66,8 +66,15 @@ RUN_SH = """#!/bin/sh
 here=$(cd "$(dirname "$0")" && pwd -P)  # resolve links: the .venv is next to the real skills folder
 PY="$here/../../.venv/bin/python"
 if [ ! -x "$PY" ]; then
-  PY=python3
-  command -v "$PY" >/dev/null 2>&1 || PY=python
+  # No venv: pick a Python 3.10 or later (macOS /usr/bin/python3 is often 3.9, which the scripts do not support)
+  PY=
+  for c in python3 python3.14 python3.13 python3.12 python3.11 python3.10 python /opt/homebrew/bin/python3.14 /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /usr/local/bin/python3 "$HOME/.local/bin/python3"; do
+    if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>/dev/null; then PY=$c; break; fi
+  done
+  if [ -z "$PY" ]; then
+    echo "Error: Python 3.10 or later was not found. Stop and report this to the user (do not search for Python yourself)." >&2
+    exit 1
+  fi
 fi
 exec "$PY" "$here/scripts/{module}.py" "$@"
 """

@@ -745,6 +745,7 @@ class MacLauncherTests(unittest.TestCase):
             self.assertIn('exec "$PY"', text, f"{name}: exec で終了コードを引き継ぐ")
             self.assertIn('"$@"', text, f"{name}: 引数をそのまま渡す")
             self.assertIn(".venv/bin/python", text)
+            self.assertIn("sys.version_info < (3, 10)", text, f"{name}: .venv が無いときは 3.10 以上の Python を選ぶ (2026-11-26: macOS の /usr/bin/python3 は 3.9 で、write_text(newline=) などで落ちた)")
             self.assertIn("pwd -P", text, f"{name}: リンクをたどった実際の場所で .venv を探す (Mac は部品ごとのリンクで置くため)")
             if os.name == "posix":
                 self.assertTrue(os.access(ROOT / "skills" / name / "run.sh", os.X_OK), f"{name}: run.sh に実行権限がありません (chmod +x)")
